@@ -912,6 +912,8 @@ const RVOReview = () => {
                               <>
                                 <td className="border border-gray-200 bg-amber-50/40 px-4 py-3">
                                   <select
+                                    aria-label={`RVO KRA rating for ${kra.code}`}
+                                    title={`RVO KRA rating for ${kra.code}`}
                                     className="w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-amber-500"
                                     value={kra.rvo.rating}
                                     onChange={(e) => {
@@ -939,6 +941,9 @@ const RVOReview = () => {
                                 <td className="border border-gray-200 bg-amber-50/40 px-4 py-3">
                                   <input
                                     type="number"
+                                    aria-label={`RVO weightage percent for ${kra.code}`}
+                                    title={`RVO weightage percent for ${kra.code}`}
+                                    placeholder="0-100"
                                     min="0"
                                     max="100"
                                     step="0.5"
@@ -1344,6 +1349,8 @@ const RVOReview = () => {
                             <>
                               <td className="border border-gray-200 bg-amber-50/40 px-2 md:px-3 py-2">
                                 <select
+                                  aria-label={`RVO competency rating for ${comp.competency}`}
+                                  title={`RVO competency rating for ${comp.competency}`}
                                   className="w-full px-2 md:px-3 py-1.5 text-xs md:text-sm border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                                   value={rvoCompetencyRatings[comp.sl_no] || ""}
                                   onChange={(e) =>
