@@ -524,16 +524,11 @@ const RVOReview = () => {
     },
     {
       number: 6,
-      title: "Training",
-      fullTitle: "Training Needs",
-    },
-    {
-      number: 7,
       title: "Review",
       fullTitle: "RVO Review",
     },
     {
-      number: 8,
+      number: 7,
       title: "Finalize",
       fullTitle: "Final Assessment",
     },
@@ -1582,294 +1577,7 @@ const RVOReview = () => {
         );
 
       case 6:
-        // Step 6: Training Needs (RO's - Read Only)
-        return (
-          <div className="space-y-6">
-            <div className="bg-white rounded-lg border border-gray-200">
-              <div className="flex items-center justify-between gap-4 border-b border-gray-200 p-4 md:px-6 md:py-3">
-                <div>
-                  <h2 className="font-semibold text-gray-900">
-                    Section VI - Training Needs (RO's Identification)
-                  </h2>
-                  <p className="mt-1 text-sm text-gray-600">
-                    Training programs identified by RO
-                  </p>
-                </div>
-                <button
-                  onClick={() => setReviseTrainingMode(!reviseTrainingMode)}
-                  className={
-                    reviseTrainingMode
-                      ? "text-sm text-amber-700 hover:text-amber-900 underline"
-                      : "flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 font-medium text-white transition-colors hover:bg-amber-700"
-                  }
-                >
-                  {!reviseTrainingMode && <RefreshCw className="w-4 h-4" />}
-                  {reviseTrainingMode
-                    ? "Cancel Revision"
-                    : "Revise Training Needs"}
-                </button>
-              </div>
-
-              <div className="p-3 md:p-4">
-                <div>
-                  {trainings.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <p className="text-sm">
-                        No training needs added yet.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b border-gray-200">
-                            <th className="text-left py-2 px-3 text-xs font-medium text-gray-700">
-                              #
-                            </th>
-                            <th className="text-left py-2 px-3 text-xs font-medium text-gray-700">
-                              Training Title
-                            </th>
-                            <th className="text-left py-2 px-3 text-xs font-medium text-gray-700">
-                              Description
-                            </th>
-                            <th className="text-left py-2 px-3 text-xs font-medium text-gray-700">
-                              Priority
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {trainings.map((training, index) => (
-                            <tr
-                              key={training.id}
-                              className="border-b border-gray-100"
-                            >
-                              <td className="py-2 px-3 text-sm text-gray-900">
-                                {index + 1}
-                              </td>
-                              <td className="py-2 px-3 text-sm text-gray-900">
-                                {training.title}
-                              </td>
-                              <td className="py-2 px-3 text-sm text-gray-600 max-w-xs">
-                                {training.description || "-"}
-                              </td>
-                              <td className="py-2 px-3">
-                                <span
-                                  className={`text-xs px-2 py-1 rounded ${
-                                    training.priority === "high"
-                                      ? "bg-red-100 text-red-700"
-                                      : training.priority === "medium"
-                                        ? "bg-yellow-100 text-yellow-700"
-                                        : "bg-green-100 text-green-700"
-                                  }`}
-                                >
-                                  {training.priority.charAt(0).toUpperCase() +
-                                    training.priority.slice(1)}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* RVO Revision Training */}
-            {reviseTrainingMode && (
-              <div className="bg-white rounded-lg border border-amber-300">
-                <div className="p-4 md:p-6 border-b border-amber-200 bg-amber-50 flex items-center justify-between">
-                  <div>
-                    <h2 className="font-semibold text-amber-900">
-                      RVO's Additional Training Needs
-                    </h2>
-                    <p className="text-sm text-amber-700 mt-1">
-                      Add additional training programs you recommend
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {!showRvoTrainingForm && (
-                      <button
-                        onClick={handleAddRvoTrainingClick}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-amber-700 text-white rounded-lg hover:bg-amber-800 text-sm"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Add Training
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="p-3 md:p-4">
-                  {showRvoTrainingForm ? (
-                    // RVO Training Form
-                    <div className="border border-amber-200 rounded-lg p-3 bg-amber-50">
-                      <h3 className="text-sm font-medium text-gray-900 mb-3">
-                        {isEditingRvoTraining ? "Edit Training" : "New Training"}
-                      </h3>
-
-                      <div className="space-y-3">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                            Training Title <span className="text-red-600">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            value={currentRvoTraining.title}
-                            onChange={(e) =>
-                              updateCurrentRvoTraining("title", e.target.value)
-                            }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white"
-                            placeholder="e.g., Advanced Project Management, Leadership Skills, etc."
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                            Description
-                          </label>
-                          <textarea
-                            value={currentRvoTraining.description}
-                            onChange={(e) =>
-                              updateCurrentRvoTraining("description", e.target.value)
-                            }
-                            rows={2}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white"
-                            placeholder="Describe the training program and how it will benefit..."
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                            Priority Level <span className="text-red-600">*</span>
-                          </label>
-                          <select
-                            value={currentRvoTraining.priority}
-                            onChange={(e) =>
-                              updateCurrentRvoTraining("priority", e.target.value)
-                            }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white"
-                          >
-                            <option value="high">High Priority</option>
-                            <option value="medium">Medium Priority</option>
-                            <option value="low">Low Priority</option>
-                          </select>
-                        </div>
-
-                        <div className="flex gap-2 justify-end pt-2">
-                          <button
-                            onClick={handleCancelRvoTraining}
-                            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={handleSaveRvoTraining}
-                            className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 text-sm"
-                          >
-                            {isEditingRvoTraining ? "Update" : "Save"}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    // RVO Training Table
-                    <div>
-                      {rvoTrainings.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500">
-                          <p className="text-sm">
-                            No additional training needs added yet.
-                          </p>
-                          <p className="text-xs mt-1">
-                            Click "Add Training" to get started.
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="overflow-x-auto">
-                          <table className="w-full">
-                            <thead>
-                              <tr className="border-b border-gray-200">
-                                <th className="text-left py-2 px-3 text-xs font-medium text-gray-700">
-                                  #
-                                </th>
-                                <th className="text-left py-2 px-3 text-xs font-medium text-gray-700">
-                                  Training Title
-                                </th>
-                                <th className="text-left py-2 px-3 text-xs font-medium text-gray-700">
-                                  Description
-                                </th>
-                                <th className="text-left py-2 px-3 text-xs font-medium text-gray-700">
-                                  Priority
-                                </th>
-                                <th className="text-right py-2 px-3 text-xs font-medium text-gray-700">
-                                  Actions
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {rvoTrainings.map((training, index) => (
-                                <tr
-                                  key={training.id}
-                                  className="border-b border-gray-100"
-                                >
-                                  <td className="py-2 px-3 text-sm text-gray-900">
-                                    {index + 1}
-                                  </td>
-                                  <td className="py-2 px-3 text-sm text-gray-900">
-                                    {training.title}
-                                  </td>
-                                  <td className="py-2 px-3 text-sm text-gray-600 max-w-xs truncate">
-                                    {training.description || "-"}
-                                  </td>
-                                  <td className="py-2 px-3">
-                                    <span
-                                      className={`text-xs px-2 py-1 rounded ${
-                                        training.priority === "high"
-                                          ? "bg-red-100 text-red-700"
-                                          : training.priority === "medium"
-                                            ? "bg-yellow-100 text-yellow-700"
-                                            : "bg-green-100 text-green-700"
-                                      }`}
-                                    >
-                                      {training.priority.charAt(0).toUpperCase() +
-                                        training.priority.slice(1)}
-                                    </span>
-                                  </td>
-                                  <td className="py-2 px-3">
-                                    <div className="flex items-center justify-end gap-1">
-                                      <button
-                                        onClick={() => handleEditRvoTraining(training)}
-                                        className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                                        title="Edit"
-                                      >
-                                        <Edit className="w-4 h-4" />
-                                      </button>
-                                      <button
-                                        onClick={() => removeRvoTraining(training.id)}
-                                        className="p-1 text-red-600 hover:bg-red-50 rounded"
-                                        title="Delete"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </button>
-                                    </div>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        );
-
-      case 7:
-        // Step 7: RVO Review
+        // Step 6: RVO Review
         return (
           <div className="space-y-6">
             {/* Review Summary */}
@@ -2021,8 +1729,8 @@ const RVOReview = () => {
           </div>
         );
 
-      case 8:
-        // Step 8: Final Assessment
+      case 7:
+        // Step 7: Final Assessment
         return (
           <div className="space-y-6">
             <div className="bg-white rounded-lg border border-gray-200">
@@ -2203,7 +1911,7 @@ const RVOReview = () => {
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-semibold text-gray-900">
-              Step {currentStep} of 8
+              Step {currentStep} of 7
             </span>
             <span className="text-sm text-gray-600">
               {steps[currentStep - 1].fullTitle}
@@ -2212,7 +1920,7 @@ const RVOReview = () => {
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
               className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(currentStep / 8) * 100}%` }}
+              style={{ width: `${(currentStep / 7) * 100}%` }}
             />
           </div>
         </div>
@@ -2259,7 +1967,7 @@ const RVOReview = () => {
             onClick={handleNext}
             className="flex items-center gap-1.5 px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            {currentStep === 8 ? (
+            {currentStep === 7 ? (
               <>
                 <Send className="w-3.5 h-3.5" />
                 Forward to AA
@@ -2301,7 +2009,7 @@ const RVOReview = () => {
             onClick={handleNext}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
           >
-            {currentStep === 8 ? (
+            {currentStep === 7 ? (
               <>
                 <Send className="w-5 h-5" />
                 Submit

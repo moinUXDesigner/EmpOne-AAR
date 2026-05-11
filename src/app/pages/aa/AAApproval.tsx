@@ -8,6 +8,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  RefreshCw,
+  Plus,
+  Edit,
+  Trash2,
 } from "lucide-react";
 import { useParams, Link, useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -44,6 +48,24 @@ type KRAReviewItem = {
   aaScore: string;
 };
 
+type RatingMap = {
+  [key: number]: string;
+};
+
+type WeightedReviewItem = {
+  sl_no: number;
+  attribute?: string;
+  competency?: string;
+  weightage_percent: number;
+};
+
+type Training = {
+  id: string;
+  title: string;
+  description: string;
+  priority: "high" | "medium" | "low";
+};
+
 const initialRatings: RatingItem[] = [
   {
     key: "kra",
@@ -62,8 +84,8 @@ const initialRatings: RatingItem[] = [
     label: "Personal Attributes",
     ro: 9.0,
     rvo: 8.8,
-    aa: "8.9",
-    status: "Revised",
+    aa: "8.8",
+    status: "Agreed",
     roRemark:
       "RO observed strong discipline, dependability, and proactive ownership across the review period.",
     rvoRemark:
@@ -74,8 +96,8 @@ const initialRatings: RatingItem[] = [
     label: "Functional Competency",
     ro: 8.0,
     rvo: 8.4,
-    aa: "8.2",
-    status: "Revised",
+    aa: "8.4",
+    status: "Agreed",
     roRemark:
       "RO highlighted stable domain knowledge and good process compliance with room to improve drafting quality.",
     rvoRemark:
@@ -210,6 +232,159 @@ const initialKraReviewItems: KRAReviewItem[] = [
   },
 ];
 
+const personalAttributes: WeightedReviewItem[] = [
+  {
+    sl_no: 1,
+    attribute: "Integrity & Ethics",
+    weightage_percent: 15,
+  },
+  {
+    sl_no: 2,
+    attribute: "Discipline / Dependability",
+    weightage_percent: 15,
+  },
+  {
+    sl_no: 3,
+    attribute: "Communication / Perception / Understanding Capabilities",
+    weightage_percent: 15,
+  },
+  {
+    sl_no: 4,
+    attribute: "Creativity",
+    weightage_percent: 10,
+  },
+  {
+    sl_no: 5,
+    attribute: "Teamwork / Collaboration",
+    weightage_percent: 15,
+  },
+  {
+    sl_no: 6,
+    attribute: "Initiative / Proactiveness",
+    weightage_percent: 10,
+  },
+  {
+    sl_no: 7,
+    attribute: "Stakeholder / Consumer Orientation",
+    weightage_percent: 10,
+  },
+  {
+    sl_no: 8,
+    attribute: "Punctuality / Promptness",
+    weightage_percent: 10,
+  },
+];
+
+const functionalCompetencies: WeightedReviewItem[] = [
+  {
+    sl_no: 1,
+    competency: "Job Knowledge / Domain Capability",
+    weightage_percent: 20,
+  },
+  {
+    sl_no: 2,
+    competency: "Planning & Organizing",
+    weightage_percent: 15,
+  },
+  {
+    sl_no: 3,
+    competency: "Problem Solving / Decision Support",
+    weightage_percent: 15,
+  },
+  {
+    sl_no: 4,
+    competency: "Quality Orientation",
+    weightage_percent: 10,
+  },
+  {
+    sl_no: 5,
+    competency: "Safety & Compliance Orientation",
+    weightage_percent: 15,
+  },
+  {
+    sl_no: 6,
+    competency: "Digital / Systems Usage (e-Office / SAP / Tools)",
+    weightage_percent: 15,
+  },
+  {
+    sl_no: 7,
+    competency: "Drafting Skills",
+    weightage_percent: 10,
+  },
+];
+
+const roAttributeRatings: RatingMap = {
+  1: "9",
+  2: "8",
+  3: "8",
+  4: "7",
+  5: "9",
+  6: "8",
+  7: "8",
+  8: "9",
+};
+
+const rvoAttributeRatings: RatingMap = {
+  1: "9",
+  2: "9",
+  3: "9",
+  4: "8",
+  5: "9",
+  6: "9",
+  7: "8",
+  8: "9",
+};
+
+const roCompetencyRatings: RatingMap = {
+  1: "8",
+  2: "8",
+  3: "7",
+  4: "8",
+  5: "9",
+  6: "7",
+  7: "7",
+};
+
+const rvoCompetencyRatings: RatingMap = {
+  1: "9",
+  2: "8",
+  3: "8",
+  4: "9",
+  5: "8",
+  6: "8",
+  7: "9",
+};
+
+const roTrainingRecommendations: Training[] = [
+  {
+    id: "ro-1",
+    title: "Advanced stakeholder communication workshop",
+    description: "Improve coordination and escalation handling.",
+    priority: "medium",
+  },
+  {
+    id: "ro-2",
+    title: "Cross-functional planning and coordination training",
+    description: "Build stronger planning discipline across larger initiatives.",
+    priority: "medium",
+  },
+];
+
+const rvoTrainingRecommendations: Training[] = [
+  {
+    id: "rvo-1",
+    title: "Leadership readiness and delegation program",
+    description: "Prepare for larger team responsibilities.",
+    priority: "high",
+  },
+  {
+    id: "rvo-2",
+    title: "Strategic execution and review moderation coaching",
+    description: "Strengthen execution review and moderation judgment.",
+    priority: "medium",
+  },
+];
+
 const roSummary = {
   kraKpiValidationNotes:
     "RO validated the employee's KRA/KPI submissions against available source records, operational trackers, and outcome evidence.",
@@ -246,8 +421,7 @@ const steps = [
   { number: 3, title: "Personal", fullTitle: "Personal Attributes" },
   { number: 4, title: "Functional", fullTitle: "Functional Competencies" },
   { number: 5, title: "Summary", fullTitle: "Overall Summary" },
-  { number: 6, title: "Training", fullTitle: "Training Needs" },
-  { number: 7, title: "Review", fullTitle: "AA Review" },
+  { number: 6, title: "Review", fullTitle: "AA Review" },
 ];
 
 const AAApproval = () => {
@@ -261,6 +435,14 @@ const AAApproval = () => {
   const [kraReviewItems, setKraReviewItems] =
     useState<KRAReviewItem[]>(initialKraReviewItems);
   const [reviseKraRatings, setReviseKraRatings] = useState(false);
+  const [reviseAttributesMode, setReviseAttributesMode] = useState(false);
+  const [reviseCompetenciesMode, setReviseCompetenciesMode] = useState(false);
+  const [reviseSummaryMode, setReviseSummaryMode] = useState(false);
+  const [reviseTrainingMode, setReviseTrainingMode] = useState(false);
+  const [aaAttributeRatings, setAaAttributeRatings] =
+    useState<RatingMap>(rvoAttributeRatings);
+  const [aaCompetencyRatings, setAaCompetencyRatings] =
+    useState<RatingMap>(rvoCompetencyRatings);
   const [aaKraKpiValidationNotes, setAaKraKpiValidationNotes] = useState("");
   const [aaKeyOutcomes, setAaKeyOutcomes] = useState("");
   const [aaStrengths, setAaStrengths] = useState("");
@@ -269,6 +451,15 @@ const AAApproval = () => {
   const [aaRemarks, setAaRemarks] = useState("");
   const [aaRecommendations, setAaRecommendations] = useState("");
   const [justification, setJustification] = useState("");
+  const [aaTrainings, setAaTrainings] = useState<Training[]>([]);
+  const [showAaTrainingForm, setShowAaTrainingForm] = useState(false);
+  const [currentAaTraining, setCurrentAaTraining] = useState<Training>({
+    id: "",
+    title: "",
+    description: "",
+    priority: "medium",
+  });
+  const [isEditingAaTraining, setIsEditingAaTraining] = useState(false);
 
   useEffect(() => {
     const handleSidebarToggle = (event: CustomEvent) => {
@@ -309,6 +500,110 @@ const AAApproval = () => {
     );
   };
 
+  const calculateScore = (rating: string, weightage: number) => {
+    if (!rating) return "-";
+    return ((parseFloat(rating) * weightage) / 100).toFixed(2);
+  };
+
+  const calculateTotalScore = (
+    ratingMap: RatingMap,
+    items: WeightedReviewItem[],
+  ) => {
+    const total = items.reduce((sum, item) => {
+      const rating = ratingMap[item.sl_no];
+      if (!rating) return sum;
+      return sum + (parseFloat(rating) * item.weightage_percent) / 100;
+    }, 0);
+
+    return total.toFixed(2);
+  };
+
+  const updateAaAttributeRating = (slNo: number, value: string) => {
+    const nextRatings = {
+      ...aaAttributeRatings,
+      [slNo]: value,
+    };
+
+    setAaAttributeRatings(nextRatings);
+    updateAaRating(
+      "personal",
+      calculateTotalScore(nextRatings, personalAttributes),
+    );
+  };
+
+  const updateAaCompetencyRating = (slNo: number, value: string) => {
+    const nextRatings = {
+      ...aaCompetencyRatings,
+      [slNo]: value,
+    };
+
+    setAaCompetencyRatings(nextRatings);
+    updateAaRating(
+      "functional",
+      calculateTotalScore(nextRatings, functionalCompetencies),
+    );
+  };
+
+  const handleAddAaTrainingClick = () => {
+    setCurrentAaTraining({
+      id: Date.now().toString(),
+      title: "",
+      description: "",
+      priority: "medium",
+    });
+    setIsEditingAaTraining(false);
+    setShowAaTrainingForm(true);
+  };
+
+  const handleSaveAaTraining = () => {
+    if (!currentAaTraining.title.trim()) {
+      toast.error("Please enter a training title");
+      return;
+    }
+
+    if (isEditingAaTraining) {
+      setAaTrainings(
+        aaTrainings.map((training) =>
+          training.id === currentAaTraining.id ? currentAaTraining : training,
+        ),
+      );
+    } else {
+      setAaTrainings([...aaTrainings, currentAaTraining]);
+    }
+
+    setShowAaTrainingForm(false);
+    setCurrentAaTraining({
+      id: "",
+      title: "",
+      description: "",
+      priority: "medium",
+    });
+  };
+
+  const handleCancelAaTraining = () => {
+    setShowAaTrainingForm(false);
+    setCurrentAaTraining({
+      id: "",
+      title: "",
+      description: "",
+      priority: "medium",
+    });
+  };
+
+  const handleEditAaTraining = (training: Training) => {
+    setCurrentAaTraining(training);
+    setIsEditingAaTraining(true);
+    setShowAaTrainingForm(true);
+  };
+
+  const removeAaTraining = (id: string) => {
+    setAaTrainings(aaTrainings.filter((training) => training.id !== id));
+  };
+
+  const updateCurrentAaTraining = (field: keyof Training, value: string) => {
+    setCurrentAaTraining({ ...currentAaTraining, [field]: value });
+  };
+
   const finalScore = useMemo(() => {
     const overallItem = ratings.find((item) => item.key === "overall");
     if (overallItem?.aa) {
@@ -336,7 +631,31 @@ const AAApproval = () => {
     return "Needs Improvement";
   }, [finalScore]);
 
-  const hasAaRevision = ratings.some((item) => item.status === "Revised");
+  const hasAaKraRevision = kraReviewItems.some(
+    (item) => item.aaRating && item.aaRating !== item.rvoRating,
+  );
+  const hasAaAttributeRevision = personalAttributes.some(
+    (item) =>
+      aaAttributeRatings[item.sl_no] &&
+      aaAttributeRatings[item.sl_no] !== rvoAttributeRatings[item.sl_no],
+  );
+  const hasAaCompetencyRevision = functionalCompetencies.some(
+    (item) =>
+      aaCompetencyRatings[item.sl_no] &&
+      aaCompetencyRatings[item.sl_no] !== rvoCompetencyRatings[item.sl_no],
+  );
+  const hasAaRevision =
+    ratings.some((item) => item.status === "Revised") ||
+    hasAaKraRevision ||
+    hasAaAttributeRevision ||
+    hasAaCompetencyRevision;
+  const totalRvoKraScore = useMemo(
+    () =>
+      kraReviewItems
+        .reduce((sum, item) => sum + (Number(item.rvoScore) || 0), 0)
+        .toFixed(2),
+    [kraReviewItems],
+  );
   const totalAaKraScore = useMemo(
     () =>
       kraReviewItems
@@ -373,20 +692,7 @@ const AAApproval = () => {
       }
     }
 
-    if (step === 5) {
-      if (
-        !aaKraKpiValidationNotes ||
-        !aaKeyOutcomes ||
-        !aaStrengths ||
-        !aaAreasForImprovement ||
-        !aaOverallAssessment
-      ) {
-        toast.error("Please fill all AA summary fields before proceeding");
-        return false;
-      }
-    }
-
-    if (step === 7) {
+    if (step === 6) {
       if (!aaRemarks.trim()) {
         toast.error("Please enter AA final remarks");
         return false;
@@ -542,33 +848,41 @@ const AAApproval = () => {
         return (
           <div className="space-y-6">
             <div className="bg-white rounded-lg border border-gray-200">
-              <div className="p-4 md:p-6 border-b border-gray-200">
-                <h2 className="font-semibold text-gray-900">
-                  Section II - KRA Rating
-                </h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  Review RO and RVO KRA ratings. If AA does not want to revise,
-                  you can proceed directly to the next step.
-                </p>
-              </div>
-              <div className="p-4 md:p-6 space-y-4">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <label className="inline-flex items-center gap-3 text-sm font-medium text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={reviseKraRatings}
-                      onChange={(e) => setReviseKraRatings(e.target.checked)}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    AA wants to revise KRA ratings
-                  </label>
+              <div className="flex items-start justify-between gap-4 border-b border-gray-200 p-4 md:p-6">
+                <div>
+                  <h2 className="font-semibold text-gray-900">
+                    Section II - KRA Rating
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Review RO and RVO KRA ratings first, then use revise mode to
+                    provide AA ratings.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
                   <p className="text-sm font-semibold text-blue-600">
                     Total KRAs: {kraReviewItems.length}
                   </p>
+                  <button
+                    type="button"
+                    onClick={() => setReviseKraRatings(!reviseKraRatings)}
+                    className={
+                      reviseKraRatings
+                        ? "text-sm text-amber-700 hover:text-amber-900 underline"
+                        : "flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 font-medium text-white transition-colors hover:bg-amber-700"
+                    }
+                  >
+                    {!reviseKraRatings && <RefreshCw className="w-4 h-4" />}
+                    {reviseKraRatings ? "Cancel Revision" : "Revise Ratings"}
+                  </button>
                 </div>
-
+              </div>
+              <div className="p-4 md:p-6 space-y-4">
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[1320px]">
+                  <table
+                    className={`w-full ${
+                      reviseKraRatings ? "min-w-[1320px]" : "min-w-[1040px]"
+                    }`}
+                  >
                     <thead>
                       <tr className="border-b border-gray-200">
                         <th
@@ -731,12 +1045,7 @@ const AAApproval = () => {
                         <div className="text-sm font-semibold">
                           {reviseKraRatings
                             ? totalAaKraScore
-                            : kraReviewItems
-                                .reduce(
-                                  (sum, item) => sum + (Number(item.rvoScore) || 0),
-                                  0,
-                                )
-                                .toFixed(2)}
+                            : totalRvoKraScore}
                         </div>
                       </div>
                       <div className="rounded bg-white/95 px-3 py-2 text-gray-900">
@@ -755,50 +1064,230 @@ const AAApproval = () => {
 
       case 3:
         return (
-          <div className="bg-white rounded-lg border border-gray-200">
-            <div className="p-4 md:p-6 border-b border-gray-200">
-              <h2 className="font-semibold text-gray-900">
-                Personal Attributes Review
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">
-                Compare RO and RVO remarks before confirming the AA moderated
-                score.
-              </p>
-            </div>
-            <div className="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                <h3 className="font-semibold text-blue-900">RO Review</h3>
-                <p className="text-sm text-blue-950 mt-2">
-                  {ratings.find((item) => item.key === "personal")?.roRemark}
-                </p>
-                <p className="text-sm font-semibold text-blue-900 mt-4">
-                  Rating: {ratings.find((item) => item.key === "personal")?.ro}
-                </p>
-              </div>
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-                <h3 className="font-semibold text-amber-900">RVO Review</h3>
-                <p className="text-sm text-amber-950 mt-2">
-                  {ratings.find((item) => item.key === "personal")?.rvoRemark}
-                </p>
-                <p className="text-sm font-semibold text-amber-900 mt-4">
-                  Rating: {ratings.find((item) => item.key === "personal")?.rvo}
-                </p>
-              </div>
-              <div className="lg:col-span-2 rounded-lg border border-gray-200 bg-gray-50 p-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  AA Final Personal Attributes Rating
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="10"
-                  step="0.1"
-                  value={
-                    ratings.find((item) => item.key === "personal")?.aa || ""
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg border border-gray-200">
+              <div className="flex items-center justify-between gap-4 border-b border-gray-200 p-4 md:p-6">
+                <div>
+                  <h2 className="font-semibold text-gray-900">
+                    Section III (A) - Personal Attributes
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Review RO and RVO ratings first, then use revise mode to
+                    provide AA ratings.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setReviseAttributesMode(!reviseAttributesMode)}
+                  className={
+                    reviseAttributesMode
+                      ? "text-sm text-amber-700 hover:text-amber-900 underline"
+                      : "flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 font-medium text-white transition-colors hover:bg-amber-700"
                   }
-                  onChange={(e) => updateAaRating("personal", e.target.value)}
-                  className="w-32 px-3 py-2 border border-gray-300 rounded-lg text-center"
-                />
+                >
+                  {!reviseAttributesMode && <RefreshCw className="w-4 h-4" />}
+                  {reviseAttributesMode
+                    ? "Cancel Revision"
+                    : "Revise Ratings"}
+                </button>
+              </div>
+
+              <div className="p-4 md:p-6">
+                <div className="overflow-x-auto">
+                  <table
+                    className={`w-full ${
+                      reviseAttributesMode
+                        ? "min-w-[1320px]"
+                        : "min-w-[980px]"
+                    }`}
+                  >
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th
+                          rowSpan={2}
+                          className="text-center py-3 px-4 text-sm font-medium text-gray-700"
+                        >
+                          #
+                        </th>
+                        <th
+                          rowSpan={2}
+                          className="text-left py-3 px-4 text-sm font-medium text-gray-700"
+                        >
+                          Attribute
+                        </th>
+                        <th
+                          colSpan={3}
+                          className="text-center py-3 px-4 text-sm font-medium text-gray-700 bg-blue-50"
+                        >
+                          RO Evaluation
+                        </th>
+                        <th
+                          colSpan={3}
+                          className="text-center py-3 px-4 text-sm font-medium text-amber-800 bg-amber-50"
+                        >
+                          RVO Evaluation
+                        </th>
+                        {reviseAttributesMode && (
+                          <th
+                            colSpan={3}
+                            className="text-center py-3 px-4 text-sm font-medium text-green-800 bg-green-50"
+                          >
+                            AA Evaluation
+                          </th>
+                        )}
+                      </tr>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-center py-3 px-4 text-sm font-medium text-gray-700 bg-blue-50">
+                          Rating (1-10)
+                        </th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-gray-700 bg-blue-50">
+                          Weightage (%)
+                        </th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-gray-700 bg-blue-50">
+                          Score
+                        </th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-amber-800 bg-amber-50">
+                          Rating (1-10)
+                        </th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-amber-800 bg-amber-50">
+                          Weightage (%)
+                        </th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-amber-800 bg-amber-50">
+                          Score
+                        </th>
+                        {reviseAttributesMode && (
+                          <>
+                            <th className="text-center py-3 px-4 text-sm font-medium text-green-800 bg-green-50">
+                              Rating (1-10)
+                            </th>
+                            <th className="text-center py-3 px-4 text-sm font-medium text-green-800 bg-green-50">
+                              Weightage (%)
+                            </th>
+                            <th className="text-center py-3 px-4 text-sm font-medium text-green-800 bg-green-50">
+                              Score
+                            </th>
+                          </>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {personalAttributes.map((item) => (
+                        <tr
+                          key={item.sl_no}
+                          className="border-b border-gray-100"
+                        >
+                          <td className="py-4 px-4 text-center text-sm text-gray-900">
+                            {item.sl_no}
+                          </td>
+                          <td className="py-4 px-4 text-sm font-medium text-gray-900">
+                            {item.attribute}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm text-gray-900">
+                            {roAttributeRatings[item.sl_no]}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm text-gray-900">
+                            {item.weightage_percent}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm font-semibold text-blue-600">
+                            {calculateScore(
+                              roAttributeRatings[item.sl_no],
+                              item.weightage_percent,
+                            )}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm text-gray-900 bg-amber-50/40">
+                            {rvoAttributeRatings[item.sl_no]}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm text-gray-900 bg-amber-50/40">
+                            {item.weightage_percent}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm font-semibold text-amber-700 bg-amber-50/40">
+                            {calculateScore(
+                              rvoAttributeRatings[item.sl_no],
+                              item.weightage_percent,
+                            )}
+                          </td>
+                          {reviseAttributesMode && (
+                            <>
+                              <td className="py-4 px-4 text-center bg-green-50/40">
+                                <select
+                                  value={aaAttributeRatings[item.sl_no] || ""}
+                                  onChange={(e) =>
+                                    updateAaAttributeRating(
+                                      item.sl_no,
+                                      e.target.value,
+                                    )
+                                  }
+                                  className="w-36 px-3 py-2 border border-green-300 rounded-lg bg-white text-sm"
+                                >
+                                  <option value="">Select</option>
+                                  {Array.from({ length: 10 }, (_, index) => {
+                                    const rating = String(index + 1);
+                                    return (
+                                      <option key={rating} value={rating}>
+                                        {rating}
+                                      </option>
+                                    );
+                                  })}
+                                </select>
+                              </td>
+                              <td className="py-4 px-4 text-center text-sm text-gray-900 bg-green-50/40">
+                                {item.weightage_percent}
+                              </td>
+                              <td className="py-4 px-4 text-center text-sm font-semibold text-green-700 bg-green-50/40">
+                                {calculateScore(
+                                  aaAttributeRatings[item.sl_no] || "",
+                                  item.weightage_percent,
+                                )}
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                      ))}
+                      <tr className="bg-blue-50 font-semibold">
+                        <td
+                          colSpan={4}
+                          className="py-3 px-4 text-right text-sm text-gray-900"
+                        >
+                          RO Total Score:
+                        </td>
+                        <td className="py-3 px-4 text-center text-sm text-blue-700">
+                          {calculateTotalScore(
+                            roAttributeRatings,
+                            personalAttributes,
+                          )}
+                        </td>
+                        <td
+                          colSpan={2}
+                          className="py-3 px-4 text-right text-sm text-gray-900 bg-amber-100"
+                        >
+                          RVO Total Score:
+                        </td>
+                        <td className="py-3 px-4 text-center text-sm text-amber-700 bg-amber-100">
+                          {calculateTotalScore(
+                            rvoAttributeRatings,
+                            personalAttributes,
+                          )}
+                        </td>
+                        {reviseAttributesMode && (
+                          <>
+                            <td
+                              colSpan={2}
+                              className="py-3 px-4 text-right text-sm text-gray-900 bg-green-100"
+                            >
+                              AA Total Score:
+                            </td>
+                            <td className="py-3 px-4 text-center text-sm text-green-700 bg-green-100">
+                              {calculateTotalScore(
+                                aaAttributeRatings,
+                                personalAttributes,
+                              )}
+                            </td>
+                          </>
+                        )}
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
@@ -806,52 +1295,234 @@ const AAApproval = () => {
 
       case 4:
         return (
-          <div className="bg-white rounded-lg border border-gray-200">
-            <div className="p-4 md:p-6 border-b border-gray-200">
-              <h2 className="font-semibold text-gray-900">
-                Functional Competencies Review
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">
-                Review both levels of assessment and finalize the AA moderated
-                functional score.
-              </p>
-            </div>
-            <div className="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                <h3 className="font-semibold text-blue-900">RO Review</h3>
-                <p className="text-sm text-blue-950 mt-2">
-                  {ratings.find((item) => item.key === "functional")?.roRemark}
-                </p>
-                <p className="text-sm font-semibold text-blue-900 mt-4">
-                  Rating:{" "}
-                  {ratings.find((item) => item.key === "functional")?.ro}
-                </p>
-              </div>
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-                <h3 className="font-semibold text-amber-900">RVO Review</h3>
-                <p className="text-sm text-amber-950 mt-2">
-                  {ratings.find((item) => item.key === "functional")?.rvoRemark}
-                </p>
-                <p className="text-sm font-semibold text-amber-900 mt-4">
-                  Rating:{" "}
-                  {ratings.find((item) => item.key === "functional")?.rvo}
-                </p>
-              </div>
-              <div className="lg:col-span-2 rounded-lg border border-gray-200 bg-gray-50 p-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  AA Final Functional Rating
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="10"
-                  step="0.1"
-                  value={
-                    ratings.find((item) => item.key === "functional")?.aa || ""
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg border border-gray-200">
+              <div className="flex items-center justify-between gap-4 border-b border-gray-200 p-4 md:p-6">
+                <div>
+                  <h2 className="font-semibold text-gray-900">
+                    Section III (B) - Functional Competencies
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Review RO and RVO ratings first, then use revise mode to
+                    provide AA ratings.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setReviseCompetenciesMode(!reviseCompetenciesMode)
                   }
-                  onChange={(e) => updateAaRating("functional", e.target.value)}
-                  className="w-32 px-3 py-2 border border-gray-300 rounded-lg text-center"
-                />
+                  className={
+                    reviseCompetenciesMode
+                      ? "text-sm text-amber-700 hover:text-amber-900 underline"
+                      : "flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 font-medium text-white transition-colors hover:bg-amber-700"
+                  }
+                >
+                  {!reviseCompetenciesMode && (
+                    <RefreshCw className="w-4 h-4" />
+                  )}
+                  {reviseCompetenciesMode
+                    ? "Cancel Revision"
+                    : "Revise Ratings"}
+                </button>
+              </div>
+
+              <div className="p-4 md:p-6">
+                <div className="overflow-x-auto">
+                  <table
+                    className={`w-full ${
+                      reviseCompetenciesMode
+                        ? "min-w-[1320px]"
+                        : "min-w-[980px]"
+                    }`}
+                  >
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th
+                          rowSpan={2}
+                          className="text-center py-3 px-4 text-sm font-medium text-gray-700"
+                        >
+                          #
+                        </th>
+                        <th
+                          rowSpan={2}
+                          className="text-left py-3 px-4 text-sm font-medium text-gray-700"
+                        >
+                          Competency
+                        </th>
+                        <th
+                          colSpan={3}
+                          className="text-center py-3 px-4 text-sm font-medium text-gray-700 bg-blue-50"
+                        >
+                          RO Evaluation
+                        </th>
+                        <th
+                          colSpan={3}
+                          className="text-center py-3 px-4 text-sm font-medium text-amber-800 bg-amber-50"
+                        >
+                          RVO Evaluation
+                        </th>
+                        {reviseCompetenciesMode && (
+                          <th
+                            colSpan={3}
+                            className="text-center py-3 px-4 text-sm font-medium text-green-800 bg-green-50"
+                          >
+                            AA Evaluation
+                          </th>
+                        )}
+                      </tr>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-center py-3 px-4 text-sm font-medium text-gray-700 bg-blue-50">
+                          Rating (1-10)
+                        </th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-gray-700 bg-blue-50">
+                          Weightage (%)
+                        </th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-gray-700 bg-blue-50">
+                          Score
+                        </th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-amber-800 bg-amber-50">
+                          Rating (1-10)
+                        </th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-amber-800 bg-amber-50">
+                          Weightage (%)
+                        </th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-amber-800 bg-amber-50">
+                          Score
+                        </th>
+                        {reviseCompetenciesMode && (
+                          <>
+                            <th className="text-center py-3 px-4 text-sm font-medium text-green-800 bg-green-50">
+                              Rating (1-10)
+                            </th>
+                            <th className="text-center py-3 px-4 text-sm font-medium text-green-800 bg-green-50">
+                              Weightage (%)
+                            </th>
+                            <th className="text-center py-3 px-4 text-sm font-medium text-green-800 bg-green-50">
+                              Score
+                            </th>
+                          </>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {functionalCompetencies.map((item) => (
+                        <tr
+                          key={item.sl_no}
+                          className="border-b border-gray-100"
+                        >
+                          <td className="py-4 px-4 text-center text-sm text-gray-900">
+                            {item.sl_no}
+                          </td>
+                          <td className="py-4 px-4 text-sm font-medium text-gray-900">
+                            {item.competency}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm text-gray-900">
+                            {roCompetencyRatings[item.sl_no]}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm text-gray-900">
+                            {item.weightage_percent}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm font-semibold text-blue-600">
+                            {calculateScore(
+                              roCompetencyRatings[item.sl_no],
+                              item.weightage_percent,
+                            )}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm text-gray-900 bg-amber-50/40">
+                            {rvoCompetencyRatings[item.sl_no]}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm text-gray-900 bg-amber-50/40">
+                            {item.weightage_percent}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm font-semibold text-amber-700 bg-amber-50/40">
+                            {calculateScore(
+                              rvoCompetencyRatings[item.sl_no],
+                              item.weightage_percent,
+                            )}
+                          </td>
+                          {reviseCompetenciesMode && (
+                            <>
+                              <td className="py-4 px-4 text-center bg-green-50/40">
+                                <select
+                                  value={aaCompetencyRatings[item.sl_no] || ""}
+                                  onChange={(e) =>
+                                    updateAaCompetencyRating(
+                                      item.sl_no,
+                                      e.target.value,
+                                    )
+                                  }
+                                  className="w-36 px-3 py-2 border border-green-300 rounded-lg bg-white text-sm"
+                                >
+                                  <option value="">Select</option>
+                                  {Array.from({ length: 10 }, (_, index) => {
+                                    const rating = String(index + 1);
+                                    return (
+                                      <option key={rating} value={rating}>
+                                        {rating}
+                                      </option>
+                                    );
+                                  })}
+                                </select>
+                              </td>
+                              <td className="py-4 px-4 text-center text-sm text-gray-900 bg-green-50/40">
+                                {item.weightage_percent}
+                              </td>
+                              <td className="py-4 px-4 text-center text-sm font-semibold text-green-700 bg-green-50/40">
+                                {calculateScore(
+                                  aaCompetencyRatings[item.sl_no] || "",
+                                  item.weightage_percent,
+                                )}
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                      ))}
+                      <tr className="bg-blue-50 font-semibold">
+                        <td
+                          colSpan={4}
+                          className="py-3 px-4 text-right text-sm text-gray-900"
+                        >
+                          RO Total Score:
+                        </td>
+                        <td className="py-3 px-4 text-center text-sm text-blue-700">
+                          {calculateTotalScore(
+                            roCompetencyRatings,
+                            functionalCompetencies,
+                          )}
+                        </td>
+                        <td
+                          colSpan={2}
+                          className="py-3 px-4 text-right text-sm text-gray-900 bg-amber-100"
+                        >
+                          RVO Total Score:
+                        </td>
+                        <td className="py-3 px-4 text-center text-sm text-amber-700 bg-amber-100">
+                          {calculateTotalScore(
+                            rvoCompetencyRatings,
+                            functionalCompetencies,
+                          )}
+                        </td>
+                        {reviseCompetenciesMode && (
+                          <>
+                            <td
+                              colSpan={2}
+                              className="py-3 px-4 text-right text-sm text-gray-900 bg-green-100"
+                            >
+                              AA Total Score:
+                            </td>
+                            <td className="py-3 px-4 text-center text-sm text-green-700 bg-green-100">
+                              {calculateTotalScore(
+                                aaCompetencyRatings,
+                                functionalCompetencies,
+                              )}
+                            </td>
+                          </>
+                        )}
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
@@ -861,14 +1532,28 @@ const AAApproval = () => {
         return (
           <div className="space-y-6">
             <div className="bg-white rounded-lg border border-gray-200">
-              <div className="p-4 md:p-6 border-b border-gray-200">
-                <h2 className="font-semibold text-gray-900">
-                  Summary Review
-                </h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  RO and RVO summaries remain visible while AA records the final
-                  summary.
-                </p>
+              <div className="flex items-center justify-between gap-4 border-b border-gray-200 p-4 md:p-6">
+                <div>
+                  <h2 className="font-semibold text-gray-900">
+                    Summary Review
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Review RO and RVO summaries first, then use revise mode to
+                    provide AA summary.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setReviseSummaryMode(!reviseSummaryMode)}
+                  className={
+                    reviseSummaryMode
+                      ? "text-sm text-amber-700 hover:text-amber-900 underline"
+                      : "flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 font-medium text-white transition-colors hover:bg-amber-700"
+                  }
+                >
+                  {!reviseSummaryMode && <RefreshCw className="w-4 h-4" />}
+                  {reviseSummaryMode ? "Cancel Revision" : "Revise Summary"}
+                </button>
               </div>
               <div className="p-4 md:p-6 space-y-6">
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -884,124 +1569,89 @@ const AAApproval = () => {
                   )}
                 </div>
 
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-4">
-                  <h3 className="text-sm font-semibold text-gray-900">
-                    AA Final Summary
-                  </h3>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      KRA/KPI Validation Notes{" "}
-                      <span className="text-red-600">*</span>
-                    </label>
-                    <textarea
-                      rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                      value={aaKraKpiValidationNotes}
-                      onChange={(e) =>
-                        setAaKraKpiValidationNotes(e.target.value)
-                      }
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {reviseSummaryMode && (
+                  <div className="rounded-lg border border-green-200 bg-green-50 p-4 space-y-4">
+                    <h3 className="text-sm font-semibold text-green-900">
+                      AA Revised Summary
+                    </h3>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Key Outcomes Delivered{" "}
+                        KRA/KPI Validation Notes{" "}
                         <span className="text-red-600">*</span>
                       </label>
                       <textarea
                         rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                        value={aaKeyOutcomes}
-                        onChange={(e) => setAaKeyOutcomes(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Strength Observed{" "}
-                        <span className="text-red-600">*</span>
-                      </label>
-                      <textarea
-                        rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                        value={aaStrengths}
-                        onChange={(e) => setAaStrengths(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Improvement Area{" "}
-                        <span className="text-red-600">*</span>
-                      </label>
-                      <textarea
-                        rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                        value={aaAreasForImprovement}
+                        className="w-full px-3 py-2 border border-green-300 rounded-lg bg-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        value={aaKraKpiValidationNotes}
                         onChange={(e) =>
-                          setAaAreasForImprovement(e.target.value)
+                          setAaKraKpiValidationNotes(e.target.value)
                         }
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Overall Assessment{" "}
-                        <span className="text-red-600">*</span>
-                      </label>
-                      <textarea
-                        rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                        value={aaOverallAssessment}
-                        onChange={(e) =>
-                          setAaOverallAssessment(e.target.value)
-                        }
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Key Outcomes Delivered{" "}
+                          <span className="text-red-600">*</span>
+                        </label>
+                        <textarea
+                          rows={3}
+                          className="w-full px-3 py-2 border border-green-300 rounded-lg bg-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          value={aaKeyOutcomes}
+                          onChange={(e) => setAaKeyOutcomes(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Strength Observed{" "}
+                          <span className="text-red-600">*</span>
+                        </label>
+                        <textarea
+                          rows={3}
+                          className="w-full px-3 py-2 border border-green-300 rounded-lg bg-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          value={aaStrengths}
+                          onChange={(e) => setAaStrengths(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Improvement Area{" "}
+                          <span className="text-red-600">*</span>
+                        </label>
+                        <textarea
+                          rows={3}
+                          className="w-full px-3 py-2 border border-green-300 rounded-lg bg-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          value={aaAreasForImprovement}
+                          onChange={(e) =>
+                            setAaAreasForImprovement(e.target.value)
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Overall Assessment{" "}
+                          <span className="text-red-600">*</span>
+                        </label>
+                        <textarea
+                          rows={3}
+                          className="w-full px-3 py-2 border border-green-300 rounded-lg bg-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          value={aaOverallAssessment}
+                          onChange={(e) =>
+                            setAaOverallAssessment(e.target.value)
+                          }
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
         );
 
       case 6:
-        return (
-          <div className="space-y-6">
-            <div className="bg-white rounded-lg border border-gray-200">
-              <div className="p-4 md:p-6 border-b border-gray-200">
-                <h2 className="font-semibold text-gray-900">
-                  Section VI - Training Needs
-                </h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  Review the development needs identified by RO and RVO before
-                  finalizing the appraisal.
-                </p>
-              </div>
-              <div className="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                  <h3 className="font-semibold text-blue-900">
-                    RO Training Recommendations
-                  </h3>
-                  <ul className="mt-3 space-y-2 text-sm text-blue-950">
-                    <li>Advanced stakeholder communication workshop</li>
-                    <li>Cross-functional planning and coordination training</li>
-                  </ul>
-                </div>
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-                  <h3 className="font-semibold text-amber-900">
-                    RVO Training Recommendations
-                  </h3>
-                  <ul className="mt-3 space-y-2 text-sm text-amber-950">
-                    <li>Leadership readiness and delegation program</li>
-                    <li>Strategic execution and review moderation coaching</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 7:
         return (
           <div className="space-y-6">
             <div className="bg-white rounded-lg border border-gray-200">
@@ -1227,7 +1877,7 @@ const AAApproval = () => {
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-semibold text-gray-900">
-              Step {currentStep} of {steps.length}
+              Step {currentStep} of 6
             </span>
             <span className="text-sm text-gray-600">
               {steps[currentStep - 1].fullTitle}
@@ -1236,7 +1886,7 @@ const AAApproval = () => {
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
               className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(currentStep / steps.length) * 100}%` }}
+              style={{ width: `${(currentStep / 6) * 100}%` }}
             />
           </div>
         </div>
@@ -1281,7 +1931,7 @@ const AAApproval = () => {
             onClick={handleNext}
             className="flex items-center gap-1.5 px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            {currentStep === steps.length ? (
+            {currentStep === 6 ? (
               <>
                 <Lock className="w-3.5 h-3.5" />
                 Finalize & Lock
@@ -1322,7 +1972,7 @@ const AAApproval = () => {
             onClick={handleNext}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
           >
-            {currentStep === steps.length ? (
+            {currentStep === 6 ? (
               <>
                 <Lock className="w-5 h-5" />
                 Finalize

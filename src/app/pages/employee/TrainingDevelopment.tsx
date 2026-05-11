@@ -1,4 +1,4 @@
-import { Plus, Save, Send, Trash2, Eye, X } from 'lucide-react';
+import { Plus, Save, Send, Trash2, Eye, X, BookOpen, CheckCircle, Lightbulb } from 'lucide-react';
 import { useState } from 'react';
 
 interface Training {
@@ -21,6 +21,7 @@ const TrainingDevelopment = () => {
   const [trainings, setTrainings] = useState<Training[]>([
     { id: '1', title: '', description: '', priority: 'medium' }
   ]);
+  const [activeTab, setActiveTab] = useState<'proposed' | 'recommended' | 'completed'>('proposed');
   const [showForm, setShowForm] = useState(false);
   const [selectedTraining, setSelectedTraining] = useState<ProposedTraining | null>(null);
   const [proposedTrainings, setProposedTrainings] = useState<ProposedTraining[]>([
@@ -112,7 +113,48 @@ const TrainingDevelopment = () => {
         </div>
       </div>
 
-      {/* Training Needs Form */}
+      {/* Tab Navigation */}
+      <div className="bg-white rounded-lg border border-gray-200 p-1">
+        <div className="flex flex-col sm:flex-row gap-1">
+          <button
+            onClick={() => setActiveTab('proposed')}
+            className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-md text-sm font-medium transition-all ${
+              activeTab === 'proposed'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            Proposed Trainings
+          </button>
+          <button
+            onClick={() => setActiveTab('recommended')}
+            className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-md text-sm font-medium transition-all ${
+              activeTab === 'recommended'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <Lightbulb className="w-4 h-4" />
+            Recommended
+          </button>
+          <button
+            onClick={() => setActiveTab('completed')}
+            className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-md text-sm font-medium transition-all ${
+              activeTab === 'completed'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <CheckCircle className="w-4 h-4" />
+            Completed
+          </button>
+        </div>
+      </div>
+
+      {activeTab === 'proposed' && (
+        <div className="space-y-6 transition-all">
+          {/* Training Needs Form */}
       <div className="bg-white rounded-lg border border-gray-200">
         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
           <div>
@@ -225,8 +267,8 @@ const TrainingDevelopment = () => {
         )}
       </div>
 
-      {/* Proposed Trainings Table */}
-      <div className="bg-white rounded-lg border border-gray-200">
+          {/* Proposed Trainings Table */}
+          <div className="bg-white rounded-lg border border-gray-200">
         <div className="p-6 border-b border-gray-200">
           <h2 className="font-semibold text-gray-900">Proposed Trainings</h2>
           <p className="text-sm text-gray-600 mt-1">All trainings you have proposed for approval</p>
@@ -279,9 +321,13 @@ const TrainingDevelopment = () => {
           </div>
         )}
       </div>
+        </div>
+      )}
 
-      {/* Completed Trainings */}
-      <div className="bg-white rounded-lg border border-gray-200">
+      {activeTab === 'completed' && (
+        <div className="transition-all">
+          {/* Completed Trainings */}
+          <div className="bg-white rounded-lg border border-gray-200">
         <div className="p-6 border-b border-gray-200">
           <h2 className="font-semibold text-gray-900">Completed Trainings (Current Year)</h2>
         </div>
@@ -318,9 +364,13 @@ const TrainingDevelopment = () => {
           </div>
         </div>
       </div>
+        </div>
+      )}
 
-      {/* Recommended Trainings */}
-      <div className="bg-white rounded-lg border border-gray-200">
+      {activeTab === 'recommended' && (
+        <div className="transition-all">
+          {/* Recommended Trainings */}
+          <div className="bg-white rounded-lg border border-gray-200">
         <div className="p-6 border-b border-gray-200">
           <h2 className="font-semibold text-gray-900">Recommended Trainings</h2>
           <p className="text-sm text-gray-600 mt-1">Based on your role and performance gaps</p>
@@ -351,6 +401,8 @@ const TrainingDevelopment = () => {
           </div>
         </div>
       </div>
+        </div>
+      )}
 
       {/* Training Details Modal */}
       {selectedTraining && (

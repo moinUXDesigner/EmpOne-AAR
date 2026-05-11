@@ -137,7 +137,7 @@ const KRAEntry = () => {
     { number: 3, name: "Targets", icon: TrendingUp },
     {
       number: 4,
-      name: "Training & Notes",
+      name: "Notes",
       icon: GraduationCap,
     },
     { number: 5, name: "Review", icon: FileCheck },
@@ -877,7 +877,7 @@ const KRAEntry = () => {
               onClick={nextStep}
               className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
-              Next: Training & Notes
+              Next: Notes
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
@@ -890,18 +890,17 @@ const KRAEntry = () => {
           <div className="p-6 border-b border-gray-200">
             <div>
               <h2 className="font-semibold text-gray-900">
-                Step 4: Training Requirements & Notes
+                Step 4: Additional Notes
               </h2>
               <p className="text-sm text-gray-600 mt-1">
-                Specify training needs and any additional
-                information
+                Specify any additional information
               </p>
             </div>
           </div>
 
           <div className="p-6">
             <div className="grid grid-cols-1 gap-6">
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Training Requirements
                 </label>
@@ -922,7 +921,7 @@ const KRAEntry = () => {
                   certifications that would help you achieve
                   this goal
                 </p>
-              </div>
+              </div> */}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
