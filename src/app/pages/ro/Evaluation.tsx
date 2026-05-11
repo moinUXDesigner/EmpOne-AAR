@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { useParams, Link, useNavigate } from "react-router";
 import { toast } from "sonner";
-import React from "react";
 import {
   Dialog,
   DialogContent,
@@ -81,10 +80,9 @@ const Evaluation = () => {
         if (savedKras) {
           const parsedKras = JSON.parse(savedKras);
           setKras(parsedKras);
-          console.log("Loaded saved KRAs:", parsedKras);
         }
-      } catch (error) {
-        console.error("Error loading saved KRAs:", error);
+      } catch {
+        // Keep existing default KRAs if saved data is malformed.
       }
     }
   }, [employeeId]);
@@ -666,9 +664,8 @@ const Evaluation = () => {
       if (currentStep === 2) {
         try {
           localStorage.setItem(`evaluation_kras_${employeeId}`, JSON.stringify(kras));
-          console.log("KRAs saved:", kras);
-        } catch (error) {
-          console.error("Error saving KRAs:", error);
+        } catch {
+          toast.error("Unable to save KRA changes locally.");
         }
       }
 
@@ -888,6 +885,7 @@ const Evaluation = () => {
                             </td>
                             <td className="border border-gray-200 px-4 py-3 align-top">
                               <select
+                                aria-label={`KRA rating for ${kra.code}`}
                                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-transparent focus:ring-2 focus:ring-blue-500"
                                 value={kra.ro.rating}
                                 onChange={(e) => {
@@ -911,6 +909,7 @@ const Evaluation = () => {
                             <td className="border border-gray-200 px-4 py-3 align-top">
                               <input
                                 type="number"
+                                aria-label={`Weightage percent for ${kra.code}`}
                                 min="0"
                                 max="100"
                                 step="0.5"
@@ -1123,6 +1122,7 @@ const Evaluation = () => {
                         <td className="border border-gray-200 px-2 md:px-3 py-2">
                           <input
                             type="number"
+                            aria-label={`Rating for ${attr.attribute}`}
                             min="1"
                             max="10"
                             className="w-full px-2 md:px-3 py-1.5 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1141,6 +1141,7 @@ const Evaluation = () => {
                         <td className="border border-gray-200 px-2 md:px-3 py-2">
                           <input
                             type="text"
+                            aria-label={`Remark for ${attr.attribute}`}
                             className="w-full px-2 md:px-3 py-1.5 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="Enter remark..."
                             value={
@@ -1245,6 +1246,7 @@ const Evaluation = () => {
                         </td>
                         <td className="border border-gray-200 px-2 md:px-3 py-2">
                           <select
+                            aria-label={`Rating for ${comp.competency}`}
                             className="w-full px-2 md:px-3 py-1.5 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             value={
                               competencyRatings[comp.sl_no] ||
@@ -1270,6 +1272,7 @@ const Evaluation = () => {
                         <td className="border border-gray-200 px-2 md:px-3 py-2">
                           <input
                             type="text"
+                            aria-label={`Remark for ${comp.competency}`}
                             className="w-full px-2 md:px-3 py-1.5 text-xs md:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="Enter remark..."
                             value={
@@ -1337,6 +1340,7 @@ const Evaluation = () => {
                     <span className="text-red-600">*</span>
                   </label>
                   <textarea
+                    aria-label="KRA KPI validation notes"
                     rows={2}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                     placeholder="Enter KRA/KPI validation notes..."
@@ -1353,6 +1357,7 @@ const Evaluation = () => {
                     <span className="text-red-600">*</span>
                   </label>
                   <textarea
+                    aria-label="Key outcomes delivered"
                     rows={2}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                     placeholder="1-3 lines"
@@ -1372,6 +1377,7 @@ const Evaluation = () => {
                     <span className="text-red-600">*</span>
                   </label>
                   <textarea
+                    aria-label="Strength observed"
                     rows={2}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                     placeholder="1-2 lines"
@@ -1391,6 +1397,7 @@ const Evaluation = () => {
                     <span className="text-red-600">*</span>
                   </label>
                   <textarea
+                    aria-label="Improvement area for next year"
                     rows={2}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                     placeholder="Enter improvement area for next year..."
@@ -1407,6 +1414,7 @@ const Evaluation = () => {
                     <span className="text-red-600">*</span>
                   </label>
                   <textarea
+                    aria-label="Overall assessment"
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                     placeholder="Minimum 3 lines"
@@ -1466,6 +1474,7 @@ const Evaluation = () => {
                       Remarks (if any)
                     </label>
                     <textarea
+                      aria-label="Integrity remarks"
                       rows={2}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                       placeholder="Any additional remarks regarding integrity..."

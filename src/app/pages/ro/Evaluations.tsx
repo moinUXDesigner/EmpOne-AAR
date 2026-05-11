@@ -200,18 +200,25 @@ const Evaluations = () => {
             <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
             <input
               type="text"
+              aria-label="Search by employee name or ID"
               placeholder="Search by employee name or ID..."
               className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4"
             />
           </div>
-          <select className="rounded-lg border border-gray-300 px-4 py-2">
+          <select
+            aria-label="Filter by evaluation type"
+            className="rounded-lg border border-gray-300 px-4 py-2"
+          >
             <option>All Types</option>
             <option>KRA Approval</option>
             <option>Final Evaluation</option>
             <option>Mid-Year Review</option>
           </select>
           {activeTab === "approved" && (
-            <select className="rounded-lg border border-gray-300 px-4 py-2">
+            <select
+              aria-label="Filter by grade"
+              className="rounded-lg border border-gray-300 px-4 py-2"
+            >
               <option>All Grades</option>
               <option>Platinum</option>
               <option>Gold</option>
@@ -356,21 +363,21 @@ const Evaluations = () => {
                           {item.type}
                         </span>
                       </span>
-                      <span>•</span>
+                      <span>&bull;</span>
                       <span>
                         Completed:{" "}
                         <span className="font-medium text-gray-900">
                           {item.completedOn}
                         </span>
                       </span>
-                      <span>•</span>
+                      <span>&bull;</span>
                       <span>
                         Score:{" "}
                         <span className="font-bold text-blue-600">
                           {item.score}
                         </span>
                       </span>
-                      <span>•</span>
+                      <span>&bull;</span>
                       <div className="flex items-center gap-1">
                         <CheckCircle className="h-4 w-4 text-green-600" />
                         <span className="font-medium text-green-600">
