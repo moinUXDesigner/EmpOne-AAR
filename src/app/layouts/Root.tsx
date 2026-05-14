@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router';
-<<<<<<< HEAD
 import {
   LayoutDashboard,
   FileEdit,
