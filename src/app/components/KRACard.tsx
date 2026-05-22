@@ -1,4 +1,4 @@
-import { CheckCircle, Clock, FileText, Download, Edit2, Save, ChevronDown, ChevronUp, X, Upload, RotateCcw } from 'lucide-react';
+import { CheckCircle, Clock, FileText, Download, Edit2, Save, ChevronDown, ChevronUp, X, Upload, RotateCcw, Eye, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -30,9 +30,12 @@ interface KRACardProps {
     aaValidationNotes?: string;
   };
   userRole: 'Employee' | 'RO' | 'RVO' | 'AA' | 'HRD';
+  onView?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
-const KRACard = ({ kra, userRole }: KRACardProps) => {
+const KRACard = ({ kra, userRole, onView, onEdit, onDelete }: KRACardProps) => {
   const showROFields = ['RO', 'RVO', 'AA', 'HRD'].includes(userRole);
   const showRVOFields = ['RVO', 'AA', 'HRD'].includes(userRole);
   const showAAFields = ['AA', 'HRD'].includes(userRole);
@@ -151,14 +154,37 @@ const KRACard = ({ kra, userRole }: KRACardProps) => {
               </button>
             )
           )}
-          {canRevise && (
-            <button
-              className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-gray-700 text-sm font-medium rounded hover:bg-gray-50 transition-colors"
-              onClick={() => setShowReviseModal(true)}
-            >
-              <RotateCcw className="w-4 h-4" />
-              Revise
-            </button>
+      {canRevise && (
+        <div className="flex items-center gap-2">
+          <button
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-gray-700 text-sm font-medium rounded hover:bg-gray-50 transition-colors"
+            onClick={onView}
+          >
+            <Eye className="w-4 h-4" />
+            View
+          </button>
+          <button
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-gray-700 text-sm font-medium rounded hover:bg-gray-50 transition-colors"
+            onClick={onEdit}
+          >
+            <Edit2 className="w-4 h-4" />
+            Edit
+          </button>
+          <button
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-red-600 text-sm font-medium rounded hover:bg-red-50 transition-colors"
+            onClick={onDelete}
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete
+          </button>
+          <button
+            className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-gray-700 text-sm font-medium rounded hover:bg-gray-50 transition-colors"
+            onClick={() => setShowReviseModal(true)}
+          >
+            <RotateCcw className="w-4 h-4" />
+            Revise
+          </button>
+        </div>
           )}
         </div>
       </div>
@@ -229,6 +255,8 @@ const KRACard = ({ kra, userRole }: KRACardProps) => {
               </label>
               {(isROEditable && isEditing) ? (
                 <select
+                  aria-label="RO rating"
+                  title="RO rating"
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={roRating}
                   onChange={(e) => setRoRating(e.target.value)}
@@ -254,6 +282,8 @@ const KRACard = ({ kra, userRole }: KRACardProps) => {
               {(isROEditable && isEditing) ? (
                 <input
                   type="number"
+                  aria-label="RO weightage percent"
+                  title="RO weightage percent"
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., 25"
                   value={roWeightage}
@@ -285,6 +315,8 @@ const KRACard = ({ kra, userRole }: KRACardProps) => {
             {(isROEditable && isEditing) ? (
               <textarea
                 rows={3}
+                aria-label="RO validation notes"
+                title="RO validation notes"
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Enter validation notes..."
                 value={roNotes}
@@ -310,6 +342,8 @@ const KRACard = ({ kra, userRole }: KRACardProps) => {
               </label>
               {(isRVOEditable && isEditing) ? (
                 <select
+                  aria-label="RVO rating"
+                  title="RVO rating"
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={rvoRating}
                   onChange={(e) => setRvoRating(e.target.value)}
@@ -335,6 +369,8 @@ const KRACard = ({ kra, userRole }: KRACardProps) => {
               {(isRVOEditable && isEditing) ? (
                 <input
                   type="number"
+                  aria-label="RVO weightage percent"
+                  title="RVO weightage percent"
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., 25"
                   value={rvoWeightage}
@@ -364,6 +400,8 @@ const KRACard = ({ kra, userRole }: KRACardProps) => {
             {(isRVOEditable && isEditing) ? (
               <textarea
                 rows={3}
+                aria-label="RVO validation notes"
+                title="RVO validation notes"
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Enter validation notes..."
                 value={rvoNotes}
@@ -390,6 +428,8 @@ const KRACard = ({ kra, userRole }: KRACardProps) => {
                 </label>
                 <textarea
                   rows={3}
+                  aria-label="AA rating comments"
+                  title="AA rating comments"
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter AA rating/comments..."
                   value={aaComments}
@@ -400,6 +440,8 @@ const KRACard = ({ kra, userRole }: KRACardProps) => {
                 <label className="block text-sm font-medium text-gray-600 mb-2">Validation Notes</label>
                 <textarea
                   rows={3}
+                  aria-label="AA validation notes"
+                  title="AA validation notes"
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter validation notes..."
                   value={aaNotes}
@@ -442,7 +484,7 @@ const KRACard = ({ kra, userRole }: KRACardProps) => {
             <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
               <div>
                 <h2 className="text-xl font-semibold text-gray-900">Revise KRA</h2>
-                <p className="text-sm text-gray-600 mt-1">Based on {kra.code} • SL: {kra.sl}</p>
+                <p className="text-sm text-gray-600 mt-1">Based on {kra.code} &bull; SL: {kra.sl}</p>
               </div>
               <button
                 onClick={() => setShowReviseModal(false)}
@@ -459,6 +501,8 @@ const KRACard = ({ kra, userRole }: KRACardProps) => {
                 </label>
                 <textarea
                   rows={3}
+                  aria-label="Revised KRA KPI"
+                  title="Revised KRA KPI"
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter KRA / KPI..."
                   value={reviseKPI}
@@ -473,6 +517,8 @@ const KRACard = ({ kra, userRole }: KRACardProps) => {
                   </label>
                   <input
                     type="text"
+                    aria-label="Revised annual target"
+                    title="Revised annual target"
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Enter target..."
                     value={reviseTarget}
@@ -485,6 +531,8 @@ const KRACard = ({ kra, userRole }: KRACardProps) => {
                   </label>
                   <input
                     type="text"
+                    aria-label="Revised actual achievement"
+                    title="Revised actual achievement"
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Enter actual achievement..."
                     value={reviseAchievement}
@@ -499,6 +547,8 @@ const KRACard = ({ kra, userRole }: KRACardProps) => {
                 </label>
                 <input
                   type="text"
+                  aria-label="Revised source reference number"
+                  title="Revised source reference number"
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter source ref. no..."
                   value={reviseSourceRef}
@@ -511,6 +561,8 @@ const KRACard = ({ kra, userRole }: KRACardProps) => {
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition-colors cursor-pointer">
                   <input
                     type="file"
+                    aria-label="Upload supporting documents"
+                    title="Upload supporting documents"
                     className="hidden"
                     id="file-upload"
                     multiple

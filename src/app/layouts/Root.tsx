@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router';
-import { 
-  LayoutDashboard, 
-  FileEdit, 
-  CheckSquare, 
-  BarChart3, 
-  Settings, 
+import {
+  LayoutDashboard,
+  FileEdit,
+  CheckSquare,
+  BarChart3,
+  Settings,
   Eye,
   Menu,
   X,
@@ -19,15 +19,18 @@ import {
   TrendingUp,
   MessageSquare,
   GraduationCap,
-  CheckCircle
+  ClipboardCheck,
+  CheckCircle,
+  Building2,
+  Gavel,
+  FileCheck
 } from 'lucide-react';
 import Logo from '../components/Logo';
-import LanguageSwitcher from '../components/LanguageSwitcher';
 
 const Root = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false); // Default closed for mobile
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // For desktop collapsed state
-  const [userRole, setUserRole] = useState<'Employee' | 'RO' | 'RVO' | 'AA' | 'HRD'>('Employee');
+  const [userRole, setUserRole] = useState<'Employee' | 'RO' | 'RVO' | 'AA' | 'HRD' | 'PO' | 'AC'>('Employee');
   const [username, setUsername] = useState('');
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -115,21 +118,21 @@ const Root = () => {
   const showOfficerDashboard = ['RO', 'RVO', 'AA', 'HRD'].includes(userRole);
 
   const navigation = [
-    { 
-      name: userRole === 'Employee' ? 'Dashboard' : 'My Dashboard', 
-      href: '/', 
-      icon: LayoutDashboard, 
-      roles: ['Employee', 'RO', 'RVO', 'AA', 'HRD'] 
+    {
+      name: userRole === 'Employee' ? 'Dashboard' : 'My Dashboard',
+      href: '/',
+      icon: LayoutDashboard,
+      roles: ['Employee', 'RO', 'RVO', 'AA', 'HRD', 'PO', 'AC'],
     },
-    
+
     // Officer Dashboard (for non-Employee roles)
-    { 
-      name: 'Team Dashboard', 
-      href: '/officer-dashboard', 
-      icon: Users, 
-      roles: ['RO', 'RVO', 'AA', 'HRD'] 
+    {
+      name: 'Team Dashboard',
+      href: '/officer-dashboard',
+      icon: Users,
+      roles: ['RO', 'RVO', 'AA', 'HRD'],
     },
-    
+
     // Employee Menu (for Employee and Officer roles - since officers are also employees)
     { name: 'My PMS', type: 'section', roles: ['Employee', 'RO', 'RVO', 'AA'] },
     { name: 'KRA Entry', href: '/my-pms/kra-entry', icon: FileEdit, roles: ['Employee', 'RO', 'RVO', 'AA'] },
@@ -138,19 +141,28 @@ const Root = () => {
     { name: 'Performance Report', href: '/my-pms/final-score', icon: TrendingUp, roles: ['Employee', 'RO', 'RVO', 'AA'] },
     { name: 'Representation', href: '/my-pms/representation', icon: MessageSquare, roles: ['Employee', 'RO', 'RVO', 'AA'] },
     { name: 'Training & Development', href: '/my-pms/training', icon: GraduationCap, roles: ['Employee', 'RO', 'RVO', 'AA'] },
-    
+
     // RO Menu
     { name: 'Review & Approvals', type: 'section', roles: ['RO', 'RVO', 'AA'] },
+    { name: 'Evaluations', href: '/review/evaluations?tab=pending', icon: ClipboardCheck, roles: ['RO', 'RVO', 'AA'] },
     { name: 'Pending Approvals', href: '/review/pending-approvals', icon: CheckSquare, roles: ['RO', 'RVO', 'AA'] },
     { name: 'Recently Completed', href: '/review/recently-completed', icon: CheckCircle, roles: ['RO', 'RVO', 'AA'] },
-    
+
+    // PO (Personnel Officer / APAR Cell) Menu
+    { name: 'APAR Cell', type: 'section', roles: ['PO'] },
+    { name: 'APAR Queue', href: '/po/queue', icon: Building2, roles: ['PO'] },
+
+    // AC (Appeal Committee) Menu
+    { name: 'Appeal Committee', type: 'section', roles: ['AC'] },
+    { name: 'Pending Appeals', href: '/ac/queue', icon: Gavel, roles: ['AC'] },
+
     // HRD Menu
     { name: 'Analytics', href: '/analytics', icon: BarChart3, roles: ['HRD'] },
     { name: 'Administration', href: '/administration', icon: Settings, roles: ['HRD'] },
-    
+
     // Common
     { name: 'Reports', href: '/reports', icon: ClipboardList, roles: ['RO', 'RVO', 'AA', 'HRD'] },
-    { name: 'Activity', href: '/activity', icon: Activity, roles: ['Employee', 'RO', 'RVO', 'AA', 'HRD'] },
+    { name: 'Activity', href: '/activity', icon: Activity, roles: ['Employee', 'RO', 'RVO', 'AA', 'HRD', 'PO', 'AC'] },
   ];
 
   const filteredNav = navigation.filter(item => item.roles?.includes(userRole));
@@ -179,9 +191,6 @@ const Root = () => {
           </div>
           
           <div className="flex items-center gap-1.5 sm:gap-3">
-            {/* Language Switcher */}
-            <LanguageSwitcher />
-
             {/* User Profile Menu */}
             <div className="relative">
               <button

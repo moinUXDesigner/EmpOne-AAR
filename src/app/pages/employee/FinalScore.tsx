@@ -1,20 +1,12 @@
 import { useState } from 'react';
-import { Award, TrendingUp, ArrowLeft, Calendar, FileText, MessageSquare, Check, Star, BookOpen, LayoutGrid, List, Clock } from 'lucide-react';
+import { Award, TrendingUp, ArrowLeft, Calendar, FileText, MessageSquare, Check, Star, BookOpen, LayoutGrid, List, Clock, CheckCircle, Database, Unlock, Gavel } from 'lucide-react';
 import { useNavigate } from 'react-router';
 
-import platinumMedal from '../../images/Platinum-Enanced.png';
-import goldMedal from '../../images/Gold_Badge.png';
-import silverMedal from '../../images/Silver_Badge.png';
-import bronzeMedal from '../../images/Bronze_badge.png';
-
 // Medal image URLs - trying alternative format
-// const platinumMedal = 'https://lh3.googleusercontent.com/d/1bwqTnvgL9cBnTbDwQIfxsa_Sj4vyzWfs';
-// const goldMedal = 'https://lh3.googleusercontent.com/d/1aux4YIMvh5vmvdAxT_C1AFToRjuD8VFf';
-// const silverMedal = 'https://lh3.googleusercontent.com/d/1UxKqpr3-svDOMy40FiwObJyQVCIzSvVr';
-// const bronzeMedal = 'https://lh3.googleusercontent.com/d/1Syofn0zawFQf8bPyZnMHyROiSWkNumey';
-
-// Add images from src/app/images forlder
-
+const platinumMedal = 'https://lh3.googleusercontent.com/d/1bwqTnvgL9cBnTbDwQIfxsa_Sj4vyzWfs';
+const goldMedal = 'https://lh3.googleusercontent.com/d/1aux4YIMvh5vmvdAxT_C1AFToRjuD8VFf';
+const silverMedal = 'https://lh3.googleusercontent.com/d/1UxKqpr3-svDOMy40FiwObJyQVCIzSvVr';
+const bronzeMedal = 'https://lh3.googleusercontent.com/d/1Syofn0zawFQf8bPyZnMHyROiSWkNumey';
 
 const FinalScore = () => {
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
@@ -363,6 +355,41 @@ const FinalScore = () => {
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Performance Reports</h1>
           <p className="text-gray-600 mt-1">View your performance evaluation results across financial years</p>
+        </div>
+
+        {/* APAR Cell Status — current year */}
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-gray-900">APAR Cell Processing Status</h2>
+            <span className="text-xs text-gray-500">FY 2025–2026</span>
+          </div>
+          <div className="flex flex-wrap gap-0">
+            {[
+              { icon: CheckCircle, label: 'AA Approved', date: 'Mar 10, 2026', done: true, color: 'text-green-600' },
+              { icon: Unlock, label: 'PO Disclosed', date: 'Mar 15, 2026', done: true, color: 'text-green-600' },
+              { icon: MessageSquare, label: 'Representation Filed', date: 'Mar 20, 2026', done: true, color: 'text-orange-600' },
+              { icon: Gavel, label: 'Appeal Committee', date: 'Pending', done: false, color: 'text-purple-500' },
+              { icon: Database, label: 'Published to SAP', date: '—', done: false, color: 'text-gray-400' },
+            ].map((step, idx, arr) => (
+              <div key={idx} className="flex items-center">
+                <div className="flex flex-col items-center text-center w-28 sm:w-32">
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center mb-2 ${step.done ? 'bg-green-50 border-2 border-green-500' : 'bg-gray-50 border-2 border-gray-200'}`}>
+                    <step.icon className={`w-4 h-4 ${step.done ? step.color : 'text-gray-300'}`} />
+                  </div>
+                  <p className={`text-xs font-medium leading-tight ${step.done ? 'text-gray-900' : 'text-gray-400'}`}>{step.label}</p>
+                  <p className={`text-[10px] mt-0.5 ${step.done ? 'text-gray-500' : 'text-gray-300'}`}>{step.date}</p>
+                </div>
+                {idx < arr.length - 1 && (
+                  <div className={`w-4 h-0.5 mb-6 ${step.done ? 'bg-green-300' : 'bg-gray-200'}`} />
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 p-3 bg-orange-50 border border-orange-100 rounded-lg">
+            <p className="text-xs text-orange-700">
+              <span className="font-semibold">Status:</span> Your representation for FY 2025–2026 has been forwarded to the Appeal Committee by the Personnel Officer. Awaiting final decision.
+            </p>
+          </div>
         </div>
 
         {/* View Toggle */}

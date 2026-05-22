@@ -1,744 +1,1289 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Save,
   Lock,
   ArrowLeft,
   CheckCircle,
+  Check,
   ChevronLeft,
   ChevronRight,
-  Check,
-  ChevronDown,
-  ChevronUp,
-  AlertTriangle,
-  Shield,
+  Eye,
+  RefreshCw,
+  Plus,
+  Edit,
+  Trash2,
 } from "lucide-react";
 import { useParams, Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-interface Training {
+type RatingKey =
+  | "kra"
+  | "personal"
+  | "functional"
+  | "overall";
+
+type RatingItem = {
+  key: RatingKey;
+  label: string;
+  ro: number;
+  rvo: number;
+  aa: string;
+  status: "Agreed" | "Revised";
+  roRemark: string;
+  rvoRemark: string;
+};
+
+type KRAReviewItem = {
+  id: string;
+  sl: string;
+  title: string;
+  roRating: string;
+  roWeightage: string;
+  roScore: string;
+  rvoRating: string;
+  rvoWeightage: string;
+  rvoScore: string;
+  aaRating: string;
+  aaWeightage: string;
+  aaScore: string;
+};
+
+type RatingMap = {
+  [key: number]: string;
+};
+
+type WeightedReviewItem = {
+  sl_no: number;
+  attribute?: string;
+  competency?: string;
+  weightage_percent: number;
+};
+
+type Training = {
   id: string;
   title: string;
   description: string;
   priority: "high" | "medium" | "low";
-}
+};
 
-interface KRA {
-  id: string;
-  sl: string;
-  code: string;
-  kpi: string;
-  targetAnnual: string;
-  actualAchievement: string;
-  sourceRefNo: string;
-  uploadedFiles: { name: string; url: string }[];
-  status: "Approved" | "Pending";
-  type: "initial" | "revised";
-  ro: { rating: string; weightagePercent: string; score: string; validationNotes: string };
-  rvo: { rating: string; weightagePercent: string; score: string; validationNotes: string };
-  aa: { rating: string; justification: string; overridden: boolean };
-}
+const initialRatings: RatingItem[] = [
+  {
+    key: "kra",
+    label: "KRA Performance",
+    ro: 8.5,
+    rvo: 8.7,
+    aa: "8.7",
+    status: "Agreed",
+    roRemark:
+      "RO rated KRA delivery highly based on target completion, evidence quality, and delivery consistency.",
+    rvoRemark:
+      "RVO concurred with the outcome quality and noted stronger moderation support on critical deliverables.",
+  },
+  {
+    key: "personal",
+    label: "Personal Attributes",
+    ro: 9.0,
+    rvo: 8.8,
+    aa: "8.8",
+    status: "Agreed",
+    roRemark:
+      "RO observed strong discipline, dependability, and proactive ownership across the review period.",
+    rvoRemark:
+      "RVO agreed overall but moderated the score slightly to reflect uneven performance in stakeholder escalation handling.",
+  },
+  {
+    key: "functional",
+    label: "Functional Competency",
+    ro: 8.0,
+    rvo: 8.4,
+    aa: "8.4",
+    status: "Agreed",
+    roRemark:
+      "RO highlighted stable domain knowledge and good process compliance with room to improve drafting quality.",
+    rvoRemark:
+      "RVO emphasized stronger gains in planning and systems usage than reflected in the RO score.",
+  },
+  {
+    key: "overall",
+    label: "Overall Score",
+    ro: 8.5,
+    rvo: 8.6,
+    aa: "8.6",
+    status: "Agreed",
+    roRemark:
+      "RO concluded the employee delivered a consistently strong year with leadership potential.",
+    rvoRemark:
+      "RVO broadly concurred and recommended higher exposure to larger responsibilities.",
+  },
+];
 
-// ─── Component ────────────────────────────────────────────────────────────────
+const initialKraReviewItems: KRAReviewItem[] = [
+  {
+    id: "1",
+    sl: "1",
+    title: "Customer Service Excellence",
+    roRating: "9",
+    roWeightage: "25",
+    roScore: "22.50",
+    rvoRating: "9",
+    rvoWeightage: "25",
+    rvoScore: "22.50",
+    aaRating: "9",
+    aaWeightage: "25",
+    aaScore: "22.50",
+  },
+  {
+    id: "2",
+    sl: "2",
+    title: "Operational Efficiency Improvement",
+    roRating: "8",
+    roWeightage: "15",
+    roScore: "12.00",
+    rvoRating: "8",
+    rvoWeightage: "15",
+    rvoScore: "12.00",
+    aaRating: "8",
+    aaWeightage: "15",
+    aaScore: "12.00",
+  },
+  {
+    id: "3",
+    sl: "3",
+    title: "Project Delivery & Timely Completion",
+    roRating: "7",
+    roWeightage: "15",
+    roScore: "10.50",
+    rvoRating: "8",
+    rvoWeightage: "15",
+    rvoScore: "12.00",
+    aaRating: "8",
+    aaWeightage: "15",
+    aaScore: "12.00",
+  },
+  {
+    id: "4",
+    sl: "4",
+    title: "Cost Optimization & Budget Control",
+    roRating: "8",
+    roWeightage: "10",
+    roScore: "8.00",
+    rvoRating: "8",
+    rvoWeightage: "10",
+    rvoScore: "8.00",
+    aaRating: "8",
+    aaWeightage: "10",
+    aaScore: "8.00",
+  },
+  {
+    id: "5",
+    sl: "5",
+    title: "Team Development & Capacity Building",
+    roRating: "9",
+    roWeightage: "10",
+    roScore: "9.00",
+    rvoRating: "9",
+    rvoWeightage: "10",
+    rvoScore: "9.00",
+    aaRating: "9",
+    aaWeightage: "10",
+    aaScore: "9.00",
+  },
+  {
+    id: "6",
+    sl: "6",
+    title: "Compliance & Governance",
+    roRating: "8",
+    roWeightage: "10",
+    roScore: "8.00",
+    rvoRating: "8",
+    rvoWeightage: "10",
+    rvoScore: "8.00",
+    aaRating: "8",
+    aaWeightage: "10",
+    aaScore: "8.00",
+  },
+  {
+    id: "7",
+    sl: "7",
+    title: "Digital Transformation Initiatives",
+    roRating: "7",
+    roWeightage: "7.5",
+    roScore: "5.25",
+    rvoRating: "8",
+    rvoWeightage: "7.5",
+    rvoScore: "6.00",
+    aaRating: "8",
+    aaWeightage: "7.5",
+    aaScore: "6.00",
+  },
+  {
+    id: "8",
+    sl: "8",
+    title: "Stakeholder Engagement & Reporting",
+    roRating: "8",
+    roWeightage: "7.5",
+    roScore: "6.00",
+    rvoRating: "8",
+    rvoWeightage: "7.5",
+    rvoScore: "6.00",
+    aaRating: "8",
+    aaWeightage: "7.5",
+    aaScore: "6.00",
+  },
+];
+
+const personalAttributes: WeightedReviewItem[] = [
+  {
+    sl_no: 1,
+    attribute: "Integrity & Ethics",
+    weightage_percent: 15,
+  },
+  {
+    sl_no: 2,
+    attribute: "Discipline / Dependability",
+    weightage_percent: 15,
+  },
+  {
+    sl_no: 3,
+    attribute: "Communication / Perception / Understanding Capabilities",
+    weightage_percent: 15,
+  },
+  {
+    sl_no: 4,
+    attribute: "Creativity",
+    weightage_percent: 10,
+  },
+  {
+    sl_no: 5,
+    attribute: "Teamwork / Collaboration",
+    weightage_percent: 15,
+  },
+  {
+    sl_no: 6,
+    attribute: "Initiative / Proactiveness",
+    weightage_percent: 10,
+  },
+  {
+    sl_no: 7,
+    attribute: "Stakeholder / Consumer Orientation",
+    weightage_percent: 10,
+  },
+  {
+    sl_no: 8,
+    attribute: "Punctuality / Promptness",
+    weightage_percent: 10,
+  },
+];
+
+const functionalCompetencies: WeightedReviewItem[] = [
+  {
+    sl_no: 1,
+    competency: "Job Knowledge / Domain Capability",
+    weightage_percent: 20,
+  },
+  {
+    sl_no: 2,
+    competency: "Planning & Organizing",
+    weightage_percent: 15,
+  },
+  {
+    sl_no: 3,
+    competency: "Problem Solving / Decision Support",
+    weightage_percent: 15,
+  },
+  {
+    sl_no: 4,
+    competency: "Quality Orientation",
+    weightage_percent: 10,
+  },
+  {
+    sl_no: 5,
+    competency: "Safety & Compliance Orientation",
+    weightage_percent: 15,
+  },
+  {
+    sl_no: 6,
+    competency: "Digital / Systems Usage (e-Office / SAP / Tools)",
+    weightage_percent: 15,
+  },
+  {
+    sl_no: 7,
+    competency: "Drafting Skills",
+    weightage_percent: 10,
+  },
+];
+
+const roAttributeRatings: RatingMap = {
+  1: "9",
+  2: "8",
+  3: "8",
+  4: "7",
+  5: "9",
+  6: "8",
+  7: "8",
+  8: "9",
+};
+
+const rvoAttributeRatings: RatingMap = {
+  1: "9",
+  2: "9",
+  3: "9",
+  4: "8",
+  5: "9",
+  6: "9",
+  7: "8",
+  8: "9",
+};
+
+const roCompetencyRatings: RatingMap = {
+  1: "8",
+  2: "8",
+  3: "7",
+  4: "8",
+  5: "9",
+  6: "7",
+  7: "7",
+};
+
+const rvoCompetencyRatings: RatingMap = {
+  1: "9",
+  2: "8",
+  3: "8",
+  4: "9",
+  5: "8",
+  6: "8",
+  7: "9",
+};
+
+const roTrainingRecommendations: Training[] = [
+  {
+    id: "ro-1",
+    title: "Advanced stakeholder communication workshop",
+    description: "Improve coordination and escalation handling.",
+    priority: "medium",
+  },
+  {
+    id: "ro-2",
+    title: "Cross-functional planning and coordination training",
+    description: "Build stronger planning discipline across larger initiatives.",
+    priority: "medium",
+  },
+];
+
+const rvoTrainingRecommendations: Training[] = [
+  {
+    id: "rvo-1",
+    title: "Leadership readiness and delegation program",
+    description: "Prepare for larger team responsibilities.",
+    priority: "high",
+  },
+  {
+    id: "rvo-2",
+    title: "Strategic execution and review moderation coaching",
+    description: "Strengthen execution review and moderation judgment.",
+    priority: "medium",
+  },
+];
+
+const roSummary = {
+  kraKpiValidationNotes:
+    "RO validated the employee's KRA/KPI submissions against available source records, operational trackers, and outcome evidence.",
+  keyOutcomes:
+    "Delivered key operational targets, improved service response timelines, and supported team execution across priority initiatives.",
+  strengths:
+    "Strong ownership, dependable execution, and good coordination with stakeholders.",
+  areasForImprovement:
+    "Needs to improve cross-functional planning on larger initiatives.",
+  overallAssessment:
+    "A strong performer who consistently meets expectations and demonstrates leadership potential.",
+  remarks:
+    "Excellent performance throughout the year. Consistently exceeded expectations in project delivery and team management.",
+};
+
+const rvoSummary = {
+  kraKpiValidationNotes:
+    "RVO concurred with the core KRA/KPI assessment and noted that reported outcomes are aligned with the submitted evidence.",
+  keyOutcomes:
+    "Maintained delivery quality, supported process improvements, and showed steady performance across the review cycle.",
+  strengths:
+    "Good judgment, steady stakeholder handling, and reliable follow-through.",
+  areasForImprovement:
+    "Should broaden strategic delegation and improve stretch goal planning.",
+  overallAssessment:
+    "Concur with RO's assessment. Employee has shown exceptional capabilities and maintains high standards of work.",
+  remarks:
+    "Recommend for advanced leadership roles, with continued focus on larger organizational responsibilities.",
+};
+
+const steps = [
+  { number: 1, title: "Basic Info", fullTitle: "Basic Information" },
+  { number: 2, title: "KRA Rating", fullTitle: "KRA Rating" },
+  { number: 3, title: "Personal", fullTitle: "Personal Attributes" },
+  { number: 4, title: "Functional", fullTitle: "Functional Competencies" },
+  { number: 5, title: "Summary", fullTitle: "Overall Summary" },
+  { number: 6, title: "Review", fullTitle: "AA Review" },
+];
+
 const AAApproval = () => {
   const { employeeId } = useParams();
   const navigate = useNavigate();
-
-  // Stepper
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
-  const [currentKRAIndex, setCurrentKRAIndex] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [showSourceDetails, setShowSourceDetails] = useState(false);
-
-  // Lock confirmation
-  const [showLockConfirmation, setShowLockConfirmation] = useState(false);
-  const [isLocked, setIsLocked] = useState(false);
-
-  // Override toggles per section
-  const [overrideAttributes, setOverrideAttributes] = useState(false);
-  const [overrideCompetencies, setOverrideCompetencies] = useState(false);
-
-  // ── RO Attribute Ratings (pre-populated) ──
-  const [attributeRatings, setAttributeRatings] = useState<{ [k: number]: string }>({});
-  const [attributeRemarks, setAttributeRemarks] = useState<{ [k: number]: string }>({});
-
-  // ── RVO Attribute Ratings (pre-populated) ──
-  const [rvoAttributeRatings, setRvoAttributeRatings] = useState<{ [k: number]: string }>({});
-  const [rvoAttributeRemarks, setRvoAttributeRemarks] = useState<{ [k: number]: string }>({});
-
-  // ── AA Attribute Overrides ──
-  const [aaAttributeRatings, setAaAttributeRatings] = useState<{ [k: number]: string }>({});
-  const [aaAttributeJustifications, setAaAttributeJustifications] = useState<{ [k: number]: string }>({});
-
-  // ── RO Competency Ratings ──
-  const [competencyRatings, setCompetencyRatings] = useState<{ [k: number]: string }>({});
-  const [competencyRemarks, setCompetencyRemarks] = useState<{ [k: number]: string }>({});
-
-  // ── RVO Competency Ratings ──
-  const [rvoCompetencyRatings, setRvoCompetencyRatings] = useState<{ [k: number]: string }>({});
-  const [rvoCompetencyRemarks, setRvoCompetencyRemarks] = useState<{ [k: number]: string }>({});
-
-  // ── AA Competency Overrides ──
-  const [aaCompetencyRatings, setAaCompetencyRatings] = useState<{ [k: number]: string }>({});
-  const [aaCompetencyJustifications, setAaCompetencyJustifications] = useState<{ [k: number]: string }>({});
-
-  // ── Summary ──
-  const [keyOutcomes, setKeyOutcomes] = useState("");
-  const [strengths, setStrengths] = useState("");
-  const [areasForImprovement, setAreasForImprovement] = useState("");
-  const [overallAssessment, setOverallAssessment] = useState("");
-  const [rvoKeyOutcomes, setRvoKeyOutcomes] = useState("");
-  const [rvoStrengths, setRvoStrengths] = useState("");
-  const [rvoAreasForImprovement, setRvoAreasForImprovement] = useState("");
-  const [rvoOverallAssessment, setRvoOverallAssessment] = useState("");
-
-  // ── AA Final Remarks ──
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [ratings, setRatings] = useState<RatingItem[]>(initialRatings);
+  const [kraReviewItems, setKraReviewItems] =
+    useState<KRAReviewItem[]>(initialKraReviewItems);
+  const [reviseKraRatings, setReviseKraRatings] = useState(false);
+  const [reviseAttributesMode, setReviseAttributesMode] = useState(false);
+  const [reviseCompetenciesMode, setReviseCompetenciesMode] = useState(false);
+  const [reviseSummaryMode, setReviseSummaryMode] = useState(false);
+  const [reviseTrainingMode, setReviseTrainingMode] = useState(false);
+  const [aaAttributeRatings, setAaAttributeRatings] =
+    useState<RatingMap>(rvoAttributeRatings);
+  const [aaCompetencyRatings, setAaCompetencyRatings] =
+    useState<RatingMap>(rvoCompetencyRatings);
+  const [aaKraKpiValidationNotes, setAaKraKpiValidationNotes] = useState("");
+  const [aaKeyOutcomes, setAaKeyOutcomes] = useState("");
+  const [aaStrengths, setAaStrengths] = useState("");
+  const [aaAreasForImprovement, setAaAreasForImprovement] = useState("");
+  const [aaOverallAssessment, setAaOverallAssessment] = useState("");
   const [aaRemarks, setAaRemarks] = useState("");
-  const [aaDecision, setAaDecision] = useState<"agree" | "override" | "">("");
-  const [aaOverallJustification, setAaOverallJustification] = useState("");
-  const [integrityConfirmed, setIntegrityConfirmed] = useState(false);
-
-  // ── Training ──
-  const [roTrainings, setRoTrainings] = useState<Training[]>([]);
-  const [rvoTrainings, setRvoTrainings] = useState<Training[]>([]);
+  const [aaRecommendations, setAaRecommendations] = useState("");
+  const [justification, setJustification] = useState("");
   const [aaTrainings, setAaTrainings] = useState<Training[]>([]);
   const [showAaTrainingForm, setShowAaTrainingForm] = useState(false);
-  const [currentAaTraining, setCurrentAaTraining] = useState<Training>({ id: "", title: "", description: "", priority: "medium" });
+  const [currentAaTraining, setCurrentAaTraining] = useState<Training>({
+    id: "",
+    title: "",
+    description: "",
+    priority: "medium",
+  });
+  const [isEditingAaTraining, setIsEditingAaTraining] = useState(false);
 
-  // ── KRAs ──
-  const [kras, setKras] = useState<KRA[]>([
-    {
-      id: "1", sl: "1", code: "KRA-001",
-      kpi: "Customer Service Excellence - Maintain high standards of customer service and satisfaction",
-      targetAnnual: "Customer satisfaction rating above 4.5/5 and response time within 24 hours",
-      actualAchievement: "Achieved 4.7/5 rating with average response time of 18 hours",
-      sourceRefNo: "CS-2026-001",
-      uploadedFiles: [{ name: "Customer_Feedback_Report_Q1.pdf", url: "#" }, { name: "Response_Time_Analysis.xlsx", url: "#" }],
-      status: "Approved", type: "initial",
-      ro: { rating: "9", weightagePercent: "25", score: "22.50", validationNotes: "Excellent customer service delivery throughout the year." },
-      rvo: { rating: "9", weightagePercent: "25", score: "22.50", validationNotes: "Concur with RO. Exceptional service standards maintained." },
-      aa: { rating: "", justification: "", overridden: false },
-    },
-    {
-      id: "2", sl: "2", code: "KRA-002",
-      kpi: "Process Improvement - Identify and implement process improvements to enhance operational efficiency",
-      targetAnnual: "Implement 3 process improvements with cost savings of INR 50,000",
-      actualAchievement: "Implemented 4 improvements with total cost savings of INR 65,000",
-      sourceRefNo: "PI-2026-002",
-      uploadedFiles: [{ name: "Process_Improvement_Report.pdf", url: "#" }, { name: "Cost_Savings_Analysis.xlsx", url: "#" }],
-      status: "Pending", type: "initial",
-      ro: { rating: "8", weightagePercent: "20", score: "16.00", validationNotes: "Exceeded targets with significant cost savings." },
-      rvo: { rating: "8", weightagePercent: "20", score: "16.00", validationNotes: "Agreed. Strong process improvement mindset." },
-      aa: { rating: "", justification: "", overridden: false },
-    },
-    {
-      id: "3", sl: "3", code: "KRA-003",
-      kpi: "Team Collaboration - Foster effective collaboration within the team and across departments",
-      targetAnnual: "Participate in 2 cross-functional projects with team satisfaction score of 4.0+",
-      actualAchievement: "Participated in 3 projects with team satisfaction score of 4.3",
-      sourceRefNo: "TC-2026-003",
-      uploadedFiles: [{ name: "Team_Feedback_Survey.pdf", url: "#" }],
-      status: "Approved", type: "revised",
-      ro: { rating: "8", weightagePercent: "15", score: "12.00", validationNotes: "Strong collaboration and team leadership." },
-      rvo: { rating: "7", weightagePercent: "15", score: "10.50", validationNotes: "Good collaboration but room for improvement in cross-dept initiatives." },
-      aa: { rating: "", justification: "", overridden: false },
-    },
-  ]);
+  useEffect(() => {
+    const handleSidebarToggle = (event: CustomEvent) => {
+      setSidebarCollapsed(event.detail.collapsed);
+    };
 
-  // ─── Personal Attributes data ──────────────────────────────────────────────
-  const personalAttributes = [
-    { sl_no: 1, attribute: "Integrity & Ethics", weightage_percent: 15 },
-    { sl_no: 2, attribute: "Discipline / Dependability", weightage_percent: 15 },
-    { sl_no: 3, attribute: "Communication / Perception / Understanding Capabilities", weightage_percent: 15 },
-    { sl_no: 4, attribute: "Creativity", weightage_percent: 10 },
-    { sl_no: 5, attribute: "Teamwork / Collaboration", weightage_percent: 15 },
-    { sl_no: 6, attribute: "Initiative / Proactiveness", weightage_percent: 10 },
-    { sl_no: 7, attribute: "Stakeholder / Consumer Orientation", weightage_percent: 10 },
-    { sl_no: 8, attribute: "Punctuality / Promptness", weightage_percent: 10 },
-  ];
+    const saved = localStorage.getItem("sidebarCollapsed");
+    setSidebarCollapsed(saved === "true");
 
-  // ─── Functional Competencies data ─────────────────────────────────────────
-  const functionalCompetencies = [
-    { sl_no: 1, competency: "Job Knowledge / Domain Capability", weightage_percent: 20 },
-    { sl_no: 2, competency: "Planning & Organizing", weightage_percent: 15 },
-    { sl_no: 3, competency: "Problem Solving / Decision Support", weightage_percent: 15 },
-    { sl_no: 4, competency: "Quality Orientation", weightage_percent: 10 },
-    { sl_no: 5, competency: "Safety & Compliance Orientation", weightage_percent: 15 },
-    { sl_no: 6, competency: "Digital / Systems Usage (e-Office / SAP / Tools)", weightage_percent: 15 },
-    { sl_no: 7, competency: "Drafting Skills", weightage_percent: 10 },
-  ];
+    window.addEventListener(
+      "sidebarToggle",
+      handleSidebarToggle as EventListener,
+    );
 
-  // ─── Steps ─────────────────────────────────────────────────────────────────
-  const steps = [
-    { number: 1, title: "Basic Info", fullTitle: "Basic Information" },
-    { number: 2, title: "KRA Rating", fullTitle: "KRA Rating" },
-    { number: 3, title: "Personal", fullTitle: "Personal Attributes" },
-    { number: 4, title: "Functional", fullTitle: "Functional Competencies" },
-    { number: 5, title: "Summary", fullTitle: "Overall Summary" },
-    { number: 6, title: "Training", fullTitle: "Training Needs" },
-    { number: 7, title: "Final", fullTitle: "AA Final Decision" },
-  ];
+    return () => {
+      window.removeEventListener(
+        "sidebarToggle",
+        handleSidebarToggle as EventListener,
+      );
+    };
+  }, []);
 
-  // ─── Helpers ───────────────────────────────────────────────────────────────
+  const updateAaRating = (key: RatingKey, value: string) => {
+    setRatings((currentRatings) =>
+      currentRatings.map((item) =>
+        item.key === key
+          ? {
+              ...item,
+              aa: value,
+              status:
+                value !== "" &&
+                Number(value).toFixed(1) !== item.rvo.toFixed(1)
+                  ? "Revised"
+                  : "Agreed",
+            }
+          : item,
+      ),
+    );
+  };
+
   const calculateScore = (rating: string, weightage: number) => {
     if (!rating) return "-";
     return ((parseFloat(rating) * weightage) / 100).toFixed(2);
   };
 
-  const calculateTotalScore = (ratings: { [k: number]: string }, items: { sl_no: number; weightage_percent: number }[]) => {
-    let total = 0;
-    items.forEach((item) => {
-      const r = ratings[item.sl_no];
-      if (r) total += (parseFloat(r) * item.weightage_percent) / 100;
-    });
+  const calculateTotalScore = (
+    ratingMap: RatingMap,
+    items: WeightedReviewItem[],
+  ) => {
+    const total = items.reduce((sum, item) => {
+      const rating = ratingMap[item.sl_no];
+      if (!rating) return sum;
+      return sum + (parseFloat(rating) * item.weightage_percent) / 100;
+    }, 0);
+
     return total.toFixed(2);
   };
 
-  const getEffectiveRating = (roRating: string, rvoRating: string, aaRating: string) => {
-    if (aaRating) return aaRating;
-    if (rvoRating) return rvoRating;
-    return roRating;
-  };
+  const updateAaAttributeRating = (slNo: number, value: string) => {
+    const nextRatings = {
+      ...aaAttributeRatings,
+      [slNo]: value,
+    };
 
-  const ratingsAgree = (ro: string, rvo: string) => ro === rvo;
-
-  // ─── Lifecycle ─────────────────────────────────────────────────────────────
-  useEffect(() => {
-    const handleSidebarToggle = (event: CustomEvent) => setSidebarCollapsed(event.detail.collapsed);
-    const saved = localStorage.getItem("sidebarCollapsed");
-    setSidebarCollapsed(saved === "true");
-    window.addEventListener("sidebarToggle", handleSidebarToggle as EventListener);
-    return () => window.removeEventListener("sidebarToggle", handleSidebarToggle as EventListener);
-  }, []);
-
-  useEffect(() => {
-    // Pre-populate RO ratings
-    setAttributeRatings({ 1: "9", 2: "8", 3: "8", 4: "7", 5: "9", 6: "8", 7: "8", 8: "9" });
-    setAttributeRemarks({ 1: "High integrity", 8: "Always punctual" });
-    setRvoAttributeRatings({ 1: "9", 2: "8", 3: "9", 4: "7", 5: "9", 6: "8", 7: "8", 8: "9" });
-    setRvoAttributeRemarks({ 1: "Excellent ethics & integrity", 3: "Very good communication" });
-
-    setCompetencyRatings({ 1: "8", 2: "8", 3: "7", 4: "8", 5: "9", 6: "7", 7: "7" });
-    setCompetencyRemarks({ 5: "Excellent safety awareness" });
-    setRvoCompetencyRatings({ 1: "8", 2: "8", 3: "8", 4: "8", 5: "9", 6: "7", 7: "7" });
-    setRvoCompetencyRemarks({ 3: "Good problem solving skills" });
-
-    setKeyOutcomes("Successfully delivered 5 major projects ahead of schedule. Demonstrated excellent leadership in managing cross-functional teams. Maintained high client satisfaction throughout the year.");
-    setStrengths("Strong project management and execution capabilities. Excellent communication and stakeholder management. Proactive problem-solving approach.");
-    setAreasForImprovement("Can improve on technical documentation. Opportunity to enhance strategic planning skills.");
-    setOverallAssessment("The officer has demonstrated exceptional performance throughout the year, consistently exceeding targets and maintaining high standards of work quality.");
-    setRvoKeyOutcomes("Concurs with RO on all key outcomes. Additionally noted strong mentoring of junior staff.");
-    setRvoStrengths("Strong leadership and cross-functional collaboration. Excellent stakeholder management.");
-    setRvoAreasForImprovement("Focus on documentation practices and digital upskilling.");
-    setRvoOverallAssessment("RVO concurs with RO's overall assessment. Employee is recommended for promotion consideration.");
-
-    setRoTrainings([
-      { id: "1", title: "Advanced Project Management", description: "To enhance project planning and execution skills", priority: "high" },
-      { id: "2", title: "Strategic Leadership Program", description: "Develop strategic thinking and leadership capabilities", priority: "medium" },
-    ]);
-    setRvoTrainings([
-      { id: "1", title: "Digital Transformation Certification", description: "Upskill in digital tools and SAP modules", priority: "medium" },
-    ]);
-  }, []);
-
-  // ─── Navigation ────────────────────────────────────────────────────────────
-  const handleNext = () => {
-    if (!completedSteps.includes(currentStep)) setCompletedSteps([...completedSteps, currentStep]);
-    if (currentStep < 7) {
-      setCurrentStep(currentStep + 1);
-      toast.success("Progress saved");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } else {
-      setShowLockConfirmation(true);
-    }
-  };
-
-  const handlePrevious = () => {
-    if (currentStep > 1) { setCurrentStep(currentStep - 1); window.scrollTo({ top: 0, behavior: "smooth" }); }
-  };
-
-  const handleStepClick = (step: number) => {
-    if (completedSteps.includes(step) || step === currentStep || step === currentStep + 1) {
-      setCurrentStep(step);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
-
-  const handleSaveDraft = () => toast.success("Draft saved successfully!");
-
-  const handleFinalLock = () => {
-    if (!aaRemarks.trim()) { toast.error("Please add your final remarks before locking."); return; }
-    if (!integrityConfirmed) { toast.error("Please confirm the integrity declaration."); return; }
-    setIsLocked(true);
-    setShowLockConfirmation(false);
-    toast.success("Record finalized and locked successfully!");
-    setTimeout(() => navigate("/review/pending-approvals"), 2000);
-  };
-
-  // ─── KRA helpers ───────────────────────────────────────────────────────────
-  const updateKraAA = (id: string, field: keyof KRA["aa"], value: string | boolean) => {
-    setKras(kras.map((k) => k.id === id ? { ...k, aa: { ...k.aa, [field]: value } } : k));
-  };
-
-  const handlePrevKRA = () => { if (currentKRAIndex > 0) setCurrentKRAIndex(currentKRAIndex - 1); };
-  const handleNextKRA = () => { if (currentKRAIndex < kras.length - 1) setCurrentKRAIndex(currentKRAIndex + 1); };
-
-  // ─── AA Training helpers ───────────────────────────────────────────────────
-  const handleSaveAaTraining = () => {
-    if (!currentAaTraining.title.trim()) { toast.error("Please enter a training title"); return; }
-    setAaTrainings([...aaTrainings, { ...currentAaTraining, id: Date.now().toString() }]);
-    setCurrentAaTraining({ id: "", title: "", description: "", priority: "medium" });
-    setShowAaTrainingForm(false);
-  };
-
-  // ─── Shared UI helpers ─────────────────────────────────────────────────────
-  const DiffBadge = ({ ro, rvo }: { ro: string; rvo: string }) => {
-    const agree = ratingsAgree(ro, rvo);
-    return agree ? (
-      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-100 text-green-700">
-        <Check className="w-2.5 h-2.5" /> Agreed
-      </span>
-    ) : (
-      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-orange-100 text-orange-700">
-        <AlertTriangle className="w-2.5 h-2.5" /> Differs
-      </span>
+    setAaAttributeRatings(nextRatings);
+    updateAaRating(
+      "personal",
+      calculateTotalScore(nextRatings, personalAttributes),
     );
   };
 
-  // ─── Step renderers ────────────────────────────────────────────────────────
-  const renderStepContent = () => {
-    switch (currentStep) {
+  const updateAaCompetencyRating = (slNo: number, value: string) => {
+    const nextRatings = {
+      ...aaCompetencyRatings,
+      [slNo]: value,
+    };
 
-      // ── Step 1: Basic Info ─────────────────────────────────────────────────
-      case 1:
-        return (
-          <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">Section I - Basic Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-              {[
-                ["Name of Officer", "John Doe"],
-                ["Employee ID", employeeId || "EMP001"],
-                ["Cadre / Wing", "Technical Services"],
-                ["Designation", "Senior Manager"],
-                ["Grade", "Grade A1"],
-                ["Place of Posting", "Head Office"],
-                ["Date of Joining (Current Post)", "15 Jan 2024"],
-                ["Reporting Officer", "Sarah Wilson"],
-                ["Reviewing Officer", "Michael Brown"],
-                ["Period of Appraisal", "01 Apr 2025 – 31 Mar 2026"],
-              ].map(([label, value]) => (
-                <div key={label}>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
-                  <p className="text-sm font-semibold text-gray-900">{value}</p>
-                </div>
-              ))}
-            </div>
+    setAaCompetencyRatings(nextRatings);
+    updateAaRating(
+      "functional",
+      calculateTotalScore(nextRatings, functionalCompetencies),
+    );
+  };
 
-            {/* Workflow status pill */}
-            <div className="mt-6 pt-4 border-t border-gray-100">
-              <p className="text-xs font-medium text-gray-500 mb-3">Workflow Status</p>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { label: "Employee", color: "bg-green-100 text-green-700", status: "Submitted" },
-                  { label: "RO", color: "bg-green-100 text-green-700", status: "Reviewed" },
-                  { label: "RVO", color: "bg-green-100 text-green-700", status: "Reviewed" },
-                  { label: "AA", color: "bg-blue-100 text-blue-700", status: "Pending" },
-                ].map((s) => (
-                  <div key={s.label} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${s.color} text-xs font-medium`}>
-                    <CheckCircle className="w-3 h-3" />
-                    {s.label}: {s.status}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        );
+  const handleAddAaTrainingClick = () => {
+    setCurrentAaTraining({
+      id: Date.now().toString(),
+      title: "",
+      description: "",
+      priority: "medium",
+    });
+    setIsEditingAaTraining(false);
+    setShowAaTrainingForm(true);
+  };
 
-      // ── Step 2: KRA Rating ────────────────────────────────────────────────
-      case 2: {
-        const currentKRA = kras[currentKRAIndex];
-        return (
-          <div className="space-y-0 -mt-4">
-            {/* Sticky KRA Nav Pills */}
-            <div
-              className="fixed top-[109px] sm:top-[120px] md:top-[190px] left-0 lg:left-64 right-0 z-[8] bg-white border-b border-gray-200 transition-all duration-300"
-              style={{ left: typeof window !== "undefined" && window.innerWidth >= 1024 ? sidebarCollapsed ? "5rem" : "16rem" : "0" }}
-            >
-              <div className="px-4 lg:px-8 pt-2 pb-3">
-                <div className="hidden md:flex items-center justify-between gap-6">
-                  <div className="flex-shrink-0">
-                    <h2 className="text-base font-bold text-gray-900">Section II – KRA Ratings</h2>
-                    <p className="text-xs text-gray-600 mt-0.5">Review RO &amp; RVO ratings, override if required</p>
-                  </div>
-                  <div className="flex gap-2 overflow-x-auto pb-1">
-                    {kras.map((kra, index) => (
-                      <button
-                        type="button"
-                        key={kra.id}
-                        onClick={() => setCurrentKRAIndex(index)}
-                        className={`flex-shrink-0 px-4 py-2 rounded-lg font-medium text-sm transition-all ${currentKRAIndex === index ? "bg-blue-600 text-white shadow-sm" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
-                      >
-                        {kra.code}
-                        {kra.ro.rating && <Check className="inline-block w-3.5 h-3.5 ml-1.5" />}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                {/* Mobile */}
-                <div className="md:hidden flex items-center justify-between">
-                  <div>
-                    <h2 className="text-base font-bold text-gray-900">Section II – KRA</h2>
-                    <p className="text-xs text-gray-600">{currentKRA.code}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button type="button" title="Previous KRA" onClick={handlePrevKRA} disabled={currentKRAIndex === 0} className={`p-1.5 rounded-lg ${currentKRAIndex === 0 ? "text-gray-300 cursor-not-allowed" : "text-blue-600 hover:bg-blue-50"}`}><ChevronLeft className="w-5 h-5" /></button>
-                    <span className="text-xs text-gray-600">{currentKRAIndex + 1}/{kras.length}</span>
-                    <button type="button" title="Next KRA" onClick={handleNextKRA} disabled={currentKRAIndex === kras.length - 1} className={`p-1.5 rounded-lg ${currentKRAIndex === kras.length - 1 ? "text-gray-300 cursor-not-allowed" : "text-blue-600 hover:bg-blue-50"}`}><ChevronRight className="w-5 h-5" /></button>
-                  </div>
-                </div>
-              </div>
-            </div>
+  const handleSaveAaTraining = () => {
+    if (!currentAaTraining.title.trim()) {
+      toast.error("Please enter a training title");
+      return;
+    }
 
-            {/* Main KRA content */}
-            <div className="px-4 lg:px-8 pt-[140px] sm:pt-[150px] md:pt-[100px] pb-[220px] md:pb-[180px] space-y-6">
-              {/* KRA Header */}
-              <div className="space-y-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-bold bg-blue-100 text-blue-700">{currentKRA.code}</span>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${currentKRA.type === "initial" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>{currentKRA.type === "initial" ? "Initial" : "Revised"}</span>
-                    </div>
-                    <h3 className="text-sm font-bold text-gray-900 mb-2">KRA / KPI</h3>
-                    <p className="text-sm text-gray-700 leading-relaxed">{currentKRA.kpi}</p>
-                  </div>
-                  {currentKRA.status && (
-                    <span className={`ml-4 flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${currentKRA.status === "Approved" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}>
-                      {currentKRA.status === "Approved" && <CheckCircle className="w-3.5 h-3.5" />}
-                      {currentKRA.status}
-                    </span>
-                  )}
-                </div>
-                <div className="h-px bg-gray-200" />
+    if (isEditingAaTraining) {
+      setAaTrainings(
+        aaTrainings.map((training) =>
+          training.id === currentAaTraining.id ? currentAaTraining : training,
+        ),
+      );
+    } else {
+      setAaTrainings([...aaTrainings, currentAaTraining]);
+    }
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Target (Annual)</label>
-                    <p className="text-sm text-gray-900">{currentKRA.targetAnnual}</p>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Actual Achievement</label>
-                    <p className="text-sm text-gray-900">{currentKRA.actualAchievement}</p>
-                  </div>
-                </div>
-                <div className="h-px bg-gray-200" />
+    setShowAaTrainingForm(false);
+    setCurrentAaTraining({
+      id: "",
+      title: "",
+      description: "",
+      priority: "medium",
+    });
+  };
 
-                {/* Source collapse */}
-                <div>
-                  <button type="button" onClick={() => setShowSourceDetails(!showSourceDetails)} className="w-full flex items-center justify-between py-2 hover:bg-gray-50 rounded-lg transition-colors">
-                    <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Source &amp; Attachments</span>
-                    {showSourceDetails ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
-                  </button>
-                  {showSourceDetails && (
-                    <div className="pl-2 space-y-3 mt-2">
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Source Ref No.</label>
-                        <p className="text-sm text-gray-900 font-mono">{currentKRA.sourceRefNo}</p>
-                      </div>
-                      {currentKRA.uploadedFiles.length > 0 && (
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Attached Files</label>
-                          <div className="flex flex-wrap gap-2">
-                            {currentKRA.uploadedFiles.map((file, idx) => (
-                              <a key={idx} href={file.url} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-100">
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
-                                {file.name}
-                              </a>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+  const handleCancelAaTraining = () => {
+    setShowAaTrainingForm(false);
+    setCurrentAaTraining({
+      id: "",
+      title: "",
+      description: "",
+      priority: "medium",
+    });
+  };
 
-              <div className="h-px bg-gray-300" />
+  const handleEditAaTraining = (training: Training) => {
+    setCurrentAaTraining(training);
+    setIsEditingAaTraining(true);
+    setShowAaTrainingForm(true);
+  };
 
-              {/* RO + RVO side-by-side */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* RO */}
-                <div className="rounded-lg border border-blue-200 bg-blue-50/40 p-4 space-y-3">
-                  <h3 className="text-sm font-bold text-blue-800">RO Evaluation</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Rating (1-10)</label>
-                      <div className="px-3 py-2 text-sm border border-blue-200 rounded-lg bg-white text-gray-900 font-bold text-center">{currentKRA.ro.rating || "—"}</div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Weightage (%)</label>
-                      <div className="px-3 py-2 text-sm border border-blue-200 rounded-lg bg-white text-gray-900 font-semibold text-center">{currentKRA.ro.weightagePercent ? `${currentKRA.ro.weightagePercent}%` : "—"}</div>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Score</label>
-                    <div className="px-3 py-2 text-sm border border-blue-200 rounded-lg bg-white text-blue-700 font-bold text-center">{currentKRA.ro.score || "—"}</div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Validation Notes</label>
-                    <div className="px-3 py-2 text-sm border border-blue-200 rounded-lg bg-white text-gray-700 min-h-[40px]">{currentKRA.ro.validationNotes || "—"}</div>
-                  </div>
-                </div>
+  const removeAaTraining = (id: string) => {
+    setAaTrainings(aaTrainings.filter((training) => training.id !== id));
+  };
 
-                {/* RVO */}
-                <div className="rounded-lg border border-amber-200 bg-amber-50/40 p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-amber-800">RVO Evaluation</h3>
-                    <DiffBadge ro={currentKRA.ro.rating} rvo={currentKRA.rvo.rating} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Rating (1-10)</label>
-                      <div className="px-3 py-2 text-sm border border-amber-200 rounded-lg bg-white text-gray-900 font-bold text-center">{currentKRA.rvo.rating || "—"}</div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Weightage (%)</label>
-                      <div className="px-3 py-2 text-sm border border-amber-200 rounded-lg bg-white text-gray-900 font-semibold text-center">{currentKRA.rvo.weightagePercent ? `${currentKRA.rvo.weightagePercent}%` : "—"}</div>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Score</label>
-                    <div className="px-3 py-2 text-sm border border-amber-200 rounded-lg bg-white text-amber-700 font-bold text-center">{currentKRA.rvo.score || "—"}</div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Validation Notes</label>
-                    <div className="px-3 py-2 text-sm border border-amber-200 rounded-lg bg-white text-gray-700 min-h-[40px]">{currentKRA.rvo.validationNotes || "—"}</div>
-                  </div>
-                </div>
-              </div>
+  const updateCurrentAaTraining = (field: keyof Training, value: string) => {
+    setCurrentAaTraining({ ...currentAaTraining, [field]: value });
+  };
 
-              {/* AA Override for this KRA */}
-              <div className={`rounded-lg border ${currentKRA.aa.overridden ? "border-green-300 bg-green-50/30" : "border-gray-200 bg-gray-50"} p-4`}>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-bold text-gray-900">AA Override</h3>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <div
-                      onClick={() => updateKraAA(currentKRA.id, "overridden", !currentKRA.aa.overridden)}
-                      className={`relative w-10 h-5 rounded-full transition-colors ${currentKRA.aa.overridden ? "bg-green-600" : "bg-gray-300"}`}
-                    >
-                      <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${currentKRA.aa.overridden ? "translate-x-5" : ""}`} />
-                    </div>
-                    <span className="text-xs font-medium text-gray-700">{currentKRA.aa.overridden ? "Override Active" : "Override Off"}</span>
-                  </label>
-                </div>
+  const finalScore = useMemo(() => {
+    const overallItem = ratings.find((item) => item.key === "overall");
+    if (overallItem?.aa) {
+      return Number(overallItem.aa).toFixed(1);
+    }
 
-                {currentKRA.aa.overridden ? (
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1.5">AA Rating (1-10) <span className="text-red-600">*</span></label>
-                        <input
-                          type="number" min="1" max="10"
-                          className="w-full px-3 py-2 text-sm border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
-                          placeholder="1-10"
-                          value={currentKRA.aa.rating}
-                          onChange={(e) => updateKraAA(currentKRA.id, "rating", e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1.5">Effective Score</label>
-                        <div className="px-3 py-2 text-sm border border-green-200 rounded-lg bg-white text-green-700 font-bold">
-                          {currentKRA.aa.rating && currentKRA.rvo.weightagePercent
-                            ? ((parseFloat(currentKRA.aa.rating) / 10) * parseFloat(currentKRA.rvo.weightagePercent)).toFixed(2)
-                            : "—"}
-                        </div>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1.5">Justification for Override <span className="text-red-600">*</span></label>
-                      <textarea
-                        rows={3}
-                        className="w-full px-3 py-2 text-sm border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
-                        placeholder="Provide detailed justification for overriding the RVO rating..."
-                        value={currentKRA.aa.justification}
-                        onChange={(e) => updateKraAA(currentKRA.id, "justification", e.target.value)}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-xs text-gray-500 italic">AA accepts RVO rating. Enable override to modify.</p>
-                )}
-              </div>
+    const scoredItems = ratings.filter(
+      (item) => item.key !== "overall" && item.aa !== "",
+    );
+    if (scoredItems.length === 0) return "0.0";
 
-              {/* KRA Mobile nav */}
-              <div className="flex md:hidden justify-between pt-2">
-                <button type="button" onClick={handlePrevKRA} disabled={currentKRAIndex === 0} className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm border ${currentKRAIndex === 0 ? "opacity-40 cursor-not-allowed border-gray-200 text-gray-400" : "border-gray-300 hover:bg-gray-50"}`}><ChevronLeft className="w-4 h-4" /> Prev KRA</button>
-                <button type="button" onClick={handleNextKRA} disabled={currentKRAIndex === kras.length - 1} className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm border ${currentKRAIndex === kras.length - 1 ? "opacity-40 cursor-not-allowed border-gray-200 text-gray-400" : "border-gray-300 hover:bg-gray-50"}`}>Next KRA <ChevronRight className="w-4 h-4" /></button>
-              </div>
-            </div>
-          </div>
-        );
+    const total = scoredItems.reduce(
+      (sum, item) => sum + Number(item.aa || 0),
+      0,
+    );
+    return (total / scoredItems.length).toFixed(1);
+  }, [ratings]);
+
+  const finalGrade = useMemo(() => {
+    const score = Number(finalScore);
+    if (score >= 9) return "Outstanding";
+    if (score >= 8) return "Very Good";
+    if (score >= 7) return "Good";
+    if (score >= 6) return "Satisfactory";
+    return "Needs Improvement";
+  }, [finalScore]);
+
+  const hasAaKraRevision = kraReviewItems.some(
+    (item) => item.aaRating && item.aaRating !== item.rvoRating,
+  );
+  const hasAaAttributeRevision = personalAttributes.some(
+    (item) =>
+      aaAttributeRatings[item.sl_no] &&
+      aaAttributeRatings[item.sl_no] !== rvoAttributeRatings[item.sl_no],
+  );
+  const hasAaCompetencyRevision = functionalCompetencies.some(
+    (item) =>
+      aaCompetencyRatings[item.sl_no] &&
+      aaCompetencyRatings[item.sl_no] !== rvoCompetencyRatings[item.sl_no],
+  );
+  const hasAaRevision =
+    ratings.some((item) => item.status === "Revised") ||
+    hasAaKraRevision ||
+    hasAaAttributeRevision ||
+    hasAaCompetencyRevision;
+  const totalRvoKraScore = useMemo(
+    () =>
+      kraReviewItems
+        .reduce((sum, item) => sum + (Number(item.rvoScore) || 0), 0)
+        .toFixed(2),
+    [kraReviewItems],
+  );
+  const totalAaKraScore = useMemo(
+    () =>
+      kraReviewItems
+        .reduce((sum, item) => sum + (Number(item.aaScore) || 0), 0)
+        .toFixed(2),
+    [kraReviewItems],
+  );
+
+  const updateAaKraRating = (id: string, value: string) => {
+    setKraReviewItems((currentItems) =>
+      currentItems.map((item) => {
+        if (item.id !== id) return item;
+
+        const aaScore =
+          value && item.aaWeightage
+            ? ((Number(value) / 10) * Number(item.aaWeightage)).toFixed(2)
+            : "";
+
+        return {
+          ...item,
+          aaRating: value,
+          aaScore,
+        };
+      }),
+    );
+  };
+
+  const validateStep = (step: number) => {
+    if (step === 2 && reviseKraRatings) {
+      const hasMissingAaRatings = kraReviewItems.some((item) => !item.aaRating);
+      if (hasMissingAaRatings) {
+        toast.error("Please enter all AA KRA ratings before proceeding");
+        return false;
+      }
+    }
+
+    if (step === 6) {
+      if (!aaRemarks.trim()) {
+        toast.error("Please enter AA final remarks");
+        return false;
       }
 
-      // ── Step 3: Personal Attributes ───────────────────────────────────────
-      case 3: {
+      if (hasAaRevision && !justification.trim()) {
+        toast.error("Please provide justification for revised AA ratings");
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const handleStepClick = (stepNumber: number) => {
+    if (
+      completedSteps.includes(stepNumber) ||
+      stepNumber === currentStep ||
+      stepNumber === currentStep + 1
+    ) {
+      setCurrentStep(stepNumber);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const handleNext = () => {
+    if (!validateStep(currentStep)) return;
+
+    if (!completedSteps.includes(currentStep)) {
+      setCompletedSteps((prev) => [...prev, currentStep]);
+    }
+
+    if (currentStep === steps.length) {
+      setShowSuccessMessage(true);
+      toast.success("AA appraisal finalized successfully!");
+      setTimeout(() => {
+        setShowSuccessMessage(false);
+        navigate("/review/evaluations?tab=pending");
+      }, 1500);
+      return;
+    }
+
+    setCurrentStep((prev) => prev + 1);
+    toast.success("Progress saved");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handlePrevious = () => {
+    if (currentStep > 1) {
+      setCurrentStep((prev) => prev - 1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const handleSaveDraft = () => {
+    setShowSuccessMessage(true);
+    toast.success("AA draft saved successfully!");
+    setTimeout(() => setShowSuccessMessage(false), 2000);
+  };
+
+  const renderSectionCard = (
+    title: string,
+    accentClasses: string,
+    summary: typeof roSummary,
+  ) => (
+    <div className={`rounded-lg border p-4 space-y-4 ${accentClasses}`}>
+      <h3 className="text-sm font-semibold">{title}</h3>
+      <div>
+        <p className="text-xs font-semibold uppercase mb-1">
+          KRA/KPI Validation Notes
+        </p>
+        <p className="text-sm">{summary.kraKpiValidationNotes}</p>
+      </div>
+      <div>
+        <p className="text-xs font-semibold uppercase mb-1">
+          Key Outcomes Delivered
+        </p>
+        <p className="text-sm">{summary.keyOutcomes}</p>
+      </div>
+      <div>
+        <p className="text-xs font-semibold uppercase mb-1">
+          Strength Observed
+        </p>
+        <p className="text-sm">{summary.strengths}</p>
+      </div>
+      <div>
+        <p className="text-xs font-semibold uppercase mb-1">
+          Improvement Area
+        </p>
+        <p className="text-sm">{summary.areasForImprovement}</p>
+      </div>
+      <div>
+        <p className="text-xs font-semibold uppercase mb-1">Remarks</p>
+        <p className="text-sm">{summary.remarks}</p>
+      </div>
+    </div>
+  );
+
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
         return (
-          <div className="space-y-4">
-            <div className={`bg-white rounded-lg border ${overrideAttributes ? "border-green-300" : "border-gray-200"}`}>
-              <div className={`p-4 md:p-6 md:py-3 border-b ${overrideAttributes ? "border-green-200 bg-green-50" : "border-gray-200"}`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="font-semibold text-gray-900">Section III (A) – Personal Attributes</h2>
-                    <p className="text-sm text-gray-600 mt-0.5">Total Weightage: 100%</p>
-                  </div>
-                  {overrideAttributes ? (
-                    <button type="button" onClick={() => setOverrideAttributes(false)} className="text-xs text-green-700 hover:text-green-900 underline">Cancel Override</button>
-                  ) : (
-                    <button type="button" onClick={() => setOverrideAttributes(true)} className="flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-xs font-medium transition-colors">
-                      <Shield className="w-3 h-3" /> Override
-                    </button>
-                  )}
+          <div className="bg-white rounded-lg border border-gray-200">
+            <div className="p-4 md:p-6 border-b border-gray-200">
+              <h2 className="font-semibold text-gray-900">
+                Employee Information
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Review employee details and prior reviewers before final
+                approval.
+              </p>
+            </div>
+            <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              <div className="rounded-lg border border-gray-200 p-4 bg-gray-50">
+                <p className="text-sm text-gray-600">Employee ID</p>
+                <p className="font-semibold text-gray-900 mt-1">{employeeId}</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 p-4 bg-gray-50">
+                <p className="text-sm text-gray-600">Name</p>
+                <p className="font-semibold text-gray-900 mt-1">John Doe</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 p-4 bg-gray-50">
+                <p className="text-sm text-gray-600">Designation</p>
+                <p className="font-semibold text-gray-900 mt-1">
+                  Senior Manager
+                </p>
+              </div>
+              <div className="rounded-lg border border-gray-200 p-4 bg-gray-50">
+                <p className="text-sm text-gray-600">Department</p>
+                <p className="font-semibold text-gray-900 mt-1">Operations</p>
+              </div>
+              <div className="rounded-lg border border-blue-200 p-4 bg-blue-50 md:col-span-1 xl:col-span-2">
+                <p className="text-sm text-blue-700">Reporting Officer</p>
+                <p className="font-semibold text-blue-950 mt-1">
+                  Sarah Wilson
+                </p>
+                <p className="text-sm text-blue-900 mt-2">{roSummary.remarks}</p>
+              </div>
+              <div className="rounded-lg border border-amber-200 p-4 bg-amber-50 md:col-span-1 xl:col-span-2">
+                <p className="text-sm text-amber-700">Reviewing Officer</p>
+                <p className="font-semibold text-amber-950 mt-1">
+                  Michael Brown
+                </p>
+                <p className="text-sm text-amber-900 mt-2">
+                  {rvoSummary.remarks}
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 2:
+        return (
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg border border-gray-200">
+              <div className="flex items-start justify-between gap-4 border-b border-gray-200 p-4 md:p-6">
+                <div>
+                  <h2 className="font-semibold text-gray-900">
+                    Section II - KRA Rating
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Review RO and RVO KRA ratings first, then use revise mode to
+                    provide AA ratings.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <p className="text-sm font-semibold text-blue-600">
+                    Total KRAs: {kraReviewItems.length}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setReviseKraRatings(!reviseKraRatings)}
+                    className={
+                      reviseKraRatings
+                        ? "text-sm text-amber-700 hover:text-amber-900 underline"
+                        : "flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 font-medium text-white transition-colors hover:bg-amber-700"
+                    }
+                  >
+                    {!reviseKraRatings && <RefreshCw className="w-4 h-4" />}
+                    {reviseKraRatings ? "Cancel Revision" : "Revise Ratings"}
+                  </button>
                 </div>
               </div>
-              <div className="p-4 md:p-6">
+              <div className="p-4 md:p-6 space-y-4">
                 <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-xs md:text-sm">
-                    <thead className="sticky top-0 z-10">
-                      {overrideAttributes && (
-                        <tr>
-                          <th colSpan={2} className="border border-gray-200 px-2 py-1.5 bg-gray-50" />
-                          <th colSpan={3} className="border border-blue-200 px-2 py-1.5 text-center font-semibold text-blue-700 bg-blue-50">RO Assessment</th>
-                          <th colSpan={3} className="border border-amber-200 px-2 py-1.5 text-center font-semibold text-amber-700 bg-amber-50">RVO Assessment</th>
-                          <th colSpan={3} className="border border-green-300 px-2 py-1.5 text-center font-semibold text-green-700 bg-green-50">AA Override</th>
-                          <th className="border border-gray-200 px-2 py-1.5 bg-gray-50" />
-                        </tr>
-                      )}
-                      <tr className="bg-gray-50">
-                        <th className="border border-gray-200 px-2 py-2 text-left font-semibold text-gray-900 w-10">Sl.</th>
-                        <th className="border border-gray-200 px-2 py-2 text-left font-semibold text-gray-900">Attribute</th>
-                        <th className={`border px-2 py-2 text-center font-semibold text-gray-900 ${overrideAttributes ? "border-blue-200 bg-blue-50" : "border-gray-200 bg-gray-50"}`}>RO Rating</th>
-                        <th className={`border px-2 py-2 text-left font-semibold text-gray-900 ${overrideAttributes ? "border-blue-200 bg-blue-50" : "border-gray-200 bg-gray-50"}`}>RO Remark</th>
-                        <th className={`border px-2 py-2 text-center font-semibold text-gray-900 ${overrideAttributes ? "border-blue-200 bg-blue-50" : "border-gray-200 bg-gray-50"}`}>{overrideAttributes ? "RO Score" : "RO Score"}</th>
-                        {overrideAttributes && (
+                  <table
+                    className={`w-full ${
+                      reviseKraRatings ? "min-w-[1320px]" : "min-w-[1040px]"
+                    }`}
+                  >
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th
+                          className="text-center py-3 px-4 text-sm font-medium text-gray-700"
+                          rowSpan={2}
+                        >
+                          #
+                        </th>
+                        <th
+                          className="text-left py-3 px-4 text-sm font-medium text-gray-700"
+                          rowSpan={2}
+                        >
+                          KRA / KPI Title
+                        </th>
+                        <th
+                          className="text-center py-3 px-4 text-sm font-medium text-gray-700"
+                          rowSpan={2}
+                        >
+                          View
+                        </th>
+                        <th
+                          className="text-center py-3 px-4 text-sm font-medium text-gray-700 bg-blue-50"
+                          colSpan={3}
+                        >
+                          RO Evaluation
+                        </th>
+                        <th
+                          className="text-center py-3 px-4 text-sm font-medium text-amber-800 bg-amber-50"
+                          colSpan={3}
+                        >
+                          RVO Evaluation
+                        </th>
+                        {reviseKraRatings && (
+                          <th
+                            className="text-center py-3 px-4 text-sm font-medium text-green-800 bg-green-50"
+                            colSpan={3}
+                          >
+                            AA Evaluation
+                          </th>
+                        )}
+                      </tr>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-center py-3 px-4 text-sm font-medium text-gray-700 bg-blue-50">
+                          Rating (1-10)
+                        </th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-gray-700 bg-blue-50">
+                          Weightage (%)
+                        </th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-gray-700 bg-blue-50">
+                          Score
+                        </th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-amber-800 bg-amber-50">
+                          Rating (1-10)
+                        </th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-amber-800 bg-amber-50">
+                          Weightage (%)
+                        </th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-amber-800 bg-amber-50">
+                          Score
+                        </th>
+                        {reviseKraRatings && (
                           <>
-                            <th className="border border-amber-200 px-2 py-2 text-center font-semibold text-amber-800 bg-amber-50">RVO Rating</th>
-                            <th className="border border-amber-200 px-2 py-2 text-left font-semibold text-amber-800 bg-amber-50">RVO Remark</th>
-                            <th className="border border-amber-200 px-2 py-2 text-center font-semibold text-amber-800 bg-amber-50">RVO Score</th>
-                            <th className="border border-green-300 px-2 py-2 text-center font-semibold text-green-800 bg-green-50">AA Rating</th>
-                            <th className="border border-green-300 px-2 py-2 text-left font-semibold text-green-800 bg-green-50">Justification</th>
-                            <th className="border border-green-300 px-2 py-2 text-center font-semibold text-green-800 bg-green-50">Final Score</th>
+                            <th className="text-center py-3 px-4 text-sm font-medium text-green-800 bg-green-50">
+                              Rating (1-10)
+                            </th>
+                            <th className="text-center py-3 px-4 text-sm font-medium text-green-800 bg-green-50">
+                              Weightage (%)
+                            </th>
+                            <th className="text-center py-3 px-4 text-sm font-medium text-green-800 bg-green-50">
+                              Score
+                            </th>
                           </>
                         )}
-                        {!overrideAttributes && (
-                          <>
-                            <th className="border border-gray-200 px-2 py-2 text-center font-semibold text-gray-900 bg-gray-50">RVO Rating</th>
-                            <th className="border border-gray-200 px-2 py-2 text-left font-semibold text-gray-900 bg-gray-50">RVO Remark</th>
-                            <th className="border border-gray-200 px-2 py-2 text-center font-semibold text-gray-900 bg-gray-50">RVO Score</th>
-                          </>
-                        )}
-                        <th className="border border-gray-200 px-2 py-2 text-center font-semibold text-gray-900 bg-gray-50">Wt. (%)</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {personalAttributes.map((attr) => {
-                        const roR = attributeRatings[attr.sl_no] || "";
-                        const rvoR = rvoAttributeRatings[attr.sl_no] || "";
-                        const aaR = aaAttributeRatings[attr.sl_no] || "";
-                        const effectiveR = getEffectiveRating(roR, rvoR, aaR);
-                        return (
-                          <tr key={attr.sl_no} className={`hover:bg-gray-50 bg-white ${!ratingsAgree(roR, rvoR) && !overrideAttributes ? "bg-orange-50/40" : ""}`}>
-                            <td className="border border-gray-200 px-2 py-2 text-gray-900">{attr.sl_no}</td>
-                            <td className="border border-gray-200 px-2 py-2 text-gray-900">{attr.attribute}</td>
-                            {/* RO */}
-                            <td className={`border px-2 py-2 ${overrideAttributes ? "border-blue-200 bg-blue-50/20" : "border-gray-200"}`}>
-                              <div className="px-2 py-1 border border-gray-300 rounded bg-gray-50 font-bold text-center text-gray-900">{roR || "—"}</div>
-                            </td>
-                            <td className={`border px-2 py-2 ${overrideAttributes ? "border-blue-200 bg-blue-50/20" : "border-gray-200"}`}>
-                              <div className="px-2 py-1 border border-gray-300 rounded bg-gray-50 text-gray-700 min-w-[80px]">{attributeRemarks[attr.sl_no] || "—"}</div>
-                            </td>
-                            <td className={`border px-2 py-2 text-blue-600 font-semibold text-center ${overrideAttributes ? "border-blue-200 bg-blue-50/20" : "border-gray-200"}`}>
-                              {calculateScore(roR, attr.weightage_percent)}
-                            </td>
-                            {/* RVO */}
-                            {overrideAttributes ? (
-                              <>
-                                <td className="border border-amber-200 px-2 py-2 bg-amber-50/20">
-                                  <div className="px-2 py-1 border border-amber-200 rounded bg-white font-bold text-center text-gray-900">{rvoR || "—"}</div>
-                                </td>
-                                <td className="border border-amber-200 px-2 py-2 bg-amber-50/20">
-                                  <div className="px-2 py-1 border border-amber-200 rounded bg-white text-gray-700 min-w-[80px]">{rvoAttributeRemarks[attr.sl_no] || "—"}</div>
-                                </td>
-                                <td className="border border-amber-200 px-2 py-2 text-amber-600 font-semibold text-center bg-amber-50/20">
-                                  {calculateScore(rvoR, attr.weightage_percent)}
-                                </td>
-                                {/* AA Override */}
-                                <td className="border border-green-300 px-2 py-2 bg-green-50/30">
-                                  <input
-                                    type="number" min="1" max="10"
-                                    className="w-16 px-2 py-1 text-xs border border-green-300 rounded focus:ring-1 focus:ring-green-500 bg-white"
-                                    placeholder="1-10"
-                                    value={aaR}
-                                    onChange={(e) => setAaAttributeRatings({ ...aaAttributeRatings, [attr.sl_no]: e.target.value })}
-                                  />
-                                </td>
-                                <td className="border border-green-300 px-2 py-2 bg-green-50/30">
-                                  <input
-                                    type="text"
-                                    className="w-full min-w-[100px] px-2 py-1 text-xs border border-green-300 rounded focus:ring-1 focus:ring-green-500 bg-white"
-                                    placeholder="Justification..."
-                                    value={aaAttributeJustifications[attr.sl_no] || ""}
-                                    onChange={(e) => setAaAttributeJustifications({ ...aaAttributeJustifications, [attr.sl_no]: e.target.value })}
-                                  />
-                                </td>
-                                <td className="border border-green-300 px-2 py-2 text-green-700 font-semibold text-center bg-green-50/30">
-                                  {calculateScore(effectiveR, attr.weightage_percent)}
-                                </td>
-                              </>
-                            ) : (
-                              <>
-                                <td className="border border-gray-200 px-2 py-2">
-                                  <div className="flex items-center gap-1.5">
-                                    <div className="px-2 py-1 border border-gray-300 rounded bg-gray-50 font-bold text-center text-gray-900 w-12">{rvoR || "—"}</div>
-                                    <DiffBadge ro={roR} rvo={rvoR} />
-                                  </div>
-                                </td>
-                                <td className="border border-gray-200 px-2 py-2">
-                                  <div className="px-2 py-1 border border-gray-300 rounded bg-gray-50 text-gray-700 min-w-[80px]">{rvoAttributeRemarks[attr.sl_no] || "—"}</div>
-                                </td>
-                                <td className="border border-gray-200 px-2 py-2 text-amber-600 font-semibold text-center">
-                                  {calculateScore(rvoR, attr.weightage_percent)}
-                                </td>
-                              </>
-                            )}
-                            <td className="border border-gray-200 px-2 py-2 text-gray-900 text-center font-medium">{attr.weightage_percent}%</td>
-                          </tr>
-                        );
-                      })}
-                      {/* Totals row */}
-                      <tr className={`font-semibold ${overrideAttributes ? "bg-green-50" : "bg-blue-50"}`}>
-                        <td colSpan={4} className={`border border-gray-200 px-2 py-2 text-right text-gray-900 ${overrideAttributes ? "bg-green-50" : "bg-blue-50"}`}>Total Score:</td>
-                        <td className="border border-gray-200 px-2 py-2 text-blue-600 font-bold text-center bg-blue-50">{calculateTotalScore(attributeRatings, personalAttributes)}</td>
-                        {overrideAttributes && (
+                      {kraReviewItems.map((item) => (
+                        <tr key={item.id} className="border-b border-gray-100">
+                          <td className="py-4 px-4 text-center text-sm text-gray-900">
+                            {item.sl}
+                          </td>
+                          <td className="py-4 px-4 text-sm font-medium text-gray-900">
+                            {item.title}
+                          </td>
+                          <td className="py-4 px-4 text-center">
+                            <button
+                              type="button"
+                              className="inline-flex items-center justify-center text-blue-600 hover:text-blue-700"
+                              aria-label={`View ${item.title}`}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm text-gray-900">
+                            {item.roRating}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm text-gray-900">
+                            {item.roWeightage}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm font-semibold text-blue-600">
+                            {item.roScore}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm text-gray-900 bg-amber-50/40">
+                            {item.rvoRating}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm text-gray-900 bg-amber-50/40">
+                            {item.rvoWeightage}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm font-semibold text-amber-700 bg-amber-50/40">
+                            {item.rvoScore}
+                          </td>
+                          {reviseKraRatings && (
+                            <>
+                              <td className="py-4 px-4 text-center bg-green-50/40">
+                                <select
+                                  value={item.aaRating}
+                                  onChange={(e) =>
+                                    updateAaKraRating(item.id, e.target.value)
+                                  }
+                                  className="w-36 px-3 py-2 border border-green-300 rounded-lg bg-white text-sm"
+                                >
+                                  <option value="">Select</option>
+                                  {Array.from({ length: 10 }, (_, index) => {
+                                    const rating = String(index + 1);
+                                    return (
+                                      <option key={rating} value={rating}>
+                                        {rating}
+                                      </option>
+                                    );
+                                  })}
+                                </select>
+                              </td>
+                              <td className="py-4 px-4 text-center text-sm text-gray-900 bg-green-50/40">
+                                {item.aaWeightage}
+                              </td>
+                              <td className="py-4 px-4 text-center text-sm font-semibold text-green-700 bg-green-50/40">
+                                {item.aaScore || "-"}
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-white">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div>
+                      <h4 className="text-sm font-semibold leading-tight">
+                        Total Score Summary {reviseKraRatings ? "(AA)" : "(RVO)"}
+                      </h4>
+                      <p className="text-xs text-blue-100 leading-tight">
+                        {kraReviewItems.length} / {kraReviewItems.length} KRAs
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="rounded bg-white/95 px-3 py-2 text-gray-900">
+                        <div className="text-[10px] text-gray-600">Total</div>
+                        <div className="text-sm font-semibold">
+                          {reviseKraRatings
+                            ? totalAaKraScore
+                            : totalRvoKraScore}
+                        </div>
+                      </div>
+                      <div className="rounded bg-white/95 px-3 py-2 text-gray-900">
+                        <div className="text-[10px] text-gray-600">
+                          Weightage
+                        </div>
+                        <div className="text-sm font-semibold">100%</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 3:
+        return (
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg border border-gray-200">
+              <div className="flex items-center justify-between gap-4 border-b border-gray-200 p-4 md:p-6">
+                <div>
+                  <h2 className="font-semibold text-gray-900">
+                    Section III (A) - Personal Attributes
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Review RO and RVO ratings first, then use revise mode to
+                    provide AA ratings.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setReviseAttributesMode(!reviseAttributesMode)}
+                  className={
+                    reviseAttributesMode
+                      ? "text-sm text-amber-700 hover:text-amber-900 underline"
+                      : "flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 font-medium text-white transition-colors hover:bg-amber-700"
+                  }
+                >
+                  {!reviseAttributesMode && <RefreshCw className="w-4 h-4" />}
+                  {reviseAttributesMode
+                    ? "Cancel Revision"
+                    : "Revise Ratings"}
+                </button>
+              </div>
+
+              <div className="p-4 md:p-6">
+                <div className="overflow-x-auto">
+                  <table
+                    className={`w-full ${
+                      reviseAttributesMode
+                        ? "min-w-[1320px]"
+                        : "min-w-[980px]"
+                    }`}
+                  >
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th
+                          rowSpan={2}
+                          className="text-center py-3 px-4 text-sm font-medium text-gray-700"
+                        >
+                          #
+                        </th>
+                        <th
+                          rowSpan={2}
+                          className="text-left py-3 px-4 text-sm font-medium text-gray-700"
+                        >
+                          Attribute
+                        </th>
+                        <th
+                          colSpan={3}
+                          className="text-center py-3 px-4 text-sm font-medium text-gray-700 bg-blue-50"
+                        >
+                          RO Evaluation
+                        </th>
+                        <th
+                          colSpan={3}
+                          className="text-center py-3 px-4 text-sm font-medium text-amber-800 bg-amber-50"
+                        >
+                          RVO Evaluation
+                        </th>
+                        {reviseAttributesMode && (
+                          <th
+                            colSpan={3}
+                            className="text-center py-3 px-4 text-sm font-medium text-green-800 bg-green-50"
+                          >
+                            AA Evaluation
+                          </th>
+                        )}
+                      </tr>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-center py-3 px-4 text-sm font-medium text-gray-700 bg-blue-50">
+                          Rating (1-10)
+                        </th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-gray-700 bg-blue-50">
+                          Weightage (%)
+                        </th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-gray-700 bg-blue-50">
+                          Score
+                        </th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-amber-800 bg-amber-50">
+                          Rating (1-10)
+                        </th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-amber-800 bg-amber-50">
+                          Weightage (%)
+                        </th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-amber-800 bg-amber-50">
+                          Score
+                        </th>
+                        {reviseAttributesMode && (
                           <>
-                            <td colSpan={2} className="border border-amber-200 px-2 py-2 text-right text-gray-900 bg-amber-100">RVO:</td>
-                            <td className="border border-amber-200 px-2 py-2 text-amber-700 font-bold text-center bg-amber-100">{calculateTotalScore(rvoAttributeRatings, personalAttributes)}</td>
-                            <td colSpan={2} className="border border-green-300 px-2 py-2 text-right text-gray-900 bg-green-100">AA Final:</td>
-                            <td className="border border-green-300 px-2 py-2 text-green-700 font-bold text-center bg-green-100">
+                            <th className="text-center py-3 px-4 text-sm font-medium text-green-800 bg-green-50">
+                              Rating (1-10)
+                            </th>
+                            <th className="text-center py-3 px-4 text-sm font-medium text-green-800 bg-green-50">
+                              Weightage (%)
+                            </th>
+                            <th className="text-center py-3 px-4 text-sm font-medium text-green-800 bg-green-50">
+                              Score
+                            </th>
+                          </>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {personalAttributes.map((item) => (
+                        <tr
+                          key={item.sl_no}
+                          className="border-b border-gray-100"
+                        >
+                          <td className="py-4 px-4 text-center text-sm text-gray-900">
+                            {item.sl_no}
+                          </td>
+                          <td className="py-4 px-4 text-sm font-medium text-gray-900">
+                            {item.attribute}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm text-gray-900">
+                            {roAttributeRatings[item.sl_no]}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm text-gray-900">
+                            {item.weightage_percent}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm font-semibold text-blue-600">
+                            {calculateScore(
+                              roAttributeRatings[item.sl_no],
+                              item.weightage_percent,
+                            )}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm text-gray-900 bg-amber-50/40">
+                            {rvoAttributeRatings[item.sl_no]}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm text-gray-900 bg-amber-50/40">
+                            {item.weightage_percent}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm font-semibold text-amber-700 bg-amber-50/40">
+                            {calculateScore(
+                              rvoAttributeRatings[item.sl_no],
+                              item.weightage_percent,
+                            )}
+                          </td>
+                          {reviseAttributesMode && (
+                            <>
+                              <td className="py-4 px-4 text-center bg-green-50/40">
+                                <select
+                                  value={aaAttributeRatings[item.sl_no] || ""}
+                                  onChange={(e) =>
+                                    updateAaAttributeRating(
+                                      item.sl_no,
+                                      e.target.value,
+                                    )
+                                  }
+                                  className="w-36 px-3 py-2 border border-green-300 rounded-lg bg-white text-sm"
+                                >
+                                  <option value="">Select</option>
+                                  {Array.from({ length: 10 }, (_, index) => {
+                                    const rating = String(index + 1);
+                                    return (
+                                      <option key={rating} value={rating}>
+                                        {rating}
+                                      </option>
+                                    );
+                                  })}
+                                </select>
+                              </td>
+                              <td className="py-4 px-4 text-center text-sm text-gray-900 bg-green-50/40">
+                                {item.weightage_percent}
+                              </td>
+                              <td className="py-4 px-4 text-center text-sm font-semibold text-green-700 bg-green-50/40">
+                                {calculateScore(
+                                  aaAttributeRatings[item.sl_no] || "",
+                                  item.weightage_percent,
+                                )}
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                      ))}
+                      <tr className="bg-blue-50 font-semibold">
+                        <td
+                          colSpan={4}
+                          className="py-3 px-4 text-right text-sm text-gray-900"
+                        >
+                          RO Total Score:
+                        </td>
+                        <td className="py-3 px-4 text-center text-sm text-blue-700">
+                          {calculateTotalScore(
+                            roAttributeRatings,
+                            personalAttributes,
+                          )}
+                        </td>
+                        <td
+                          colSpan={2}
+                          className="py-3 px-4 text-right text-sm text-gray-900 bg-amber-100"
+                        >
+                          RVO Total Score:
+                        </td>
+                        <td className="py-3 px-4 text-center text-sm text-amber-700 bg-amber-100">
+                          {calculateTotalScore(
+                            rvoAttributeRatings,
+                            personalAttributes,
+                          )}
+                        </td>
+                        {reviseAttributesMode && (
+                          <>
+                            <td
+                              colSpan={2}
+                              className="py-3 px-4 text-right text-sm text-gray-900 bg-green-100"
+                            >
+                              AA Total Score:
+                            </td>
+                            <td className="py-3 px-4 text-center text-sm text-green-700 bg-green-100">
                               {calculateTotalScore(
-                                Object.fromEntries(personalAttributes.map((a) => [a.sl_no, getEffectiveRating(attributeRatings[a.sl_no] || "", rvoAttributeRatings[a.sl_no] || "", aaAttributeRatings[a.sl_no] || "")])),
+                                aaAttributeRatings,
                                 personalAttributes,
                               )}
                             </td>
                           </>
                         )}
-                        {!overrideAttributes && (
-                          <>
-                            <td colSpan={2} className="border border-gray-200 px-2 py-2 text-right text-gray-900 bg-amber-50">RVO Total:</td>
-                            <td className="border border-gray-200 px-2 py-2 text-amber-600 font-bold text-center bg-amber-50">{calculateTotalScore(rvoAttributeRatings, personalAttributes)}</td>
-                          </>
-                        )}
-                        <td aria-label="Weightage" className={`border border-gray-200 px-2 py-2 ${overrideAttributes ? "bg-green-50" : "bg-blue-50"}`} />
                       </tr>
                     </tbody>
                   </table>
@@ -747,164 +1292,233 @@ const AAApproval = () => {
             </div>
           </div>
         );
-      }
 
-      // ── Step 4: Functional Competencies ──────────────────────────────────
-      case 4: {
+      case 4:
         return (
-          <div className="space-y-4">
-            <div className={`bg-white rounded-lg border ${overrideCompetencies ? "border-green-300" : "border-gray-200"}`}>
-              <div className={`p-4 md:p-6 border-b ${overrideCompetencies ? "border-green-200 bg-green-50" : "border-gray-200"}`}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="font-semibold text-gray-900">Section III (B) – Functional Competencies</h2>
-                    <p className="text-sm text-gray-600 mt-0.5">Total Weightage: 100%</p>
-                  </div>
-                  {overrideCompetencies ? (
-                    <button type="button" onClick={() => setOverrideCompetencies(false)} className="text-xs text-green-700 hover:text-green-900 underline">Cancel Override</button>
-                  ) : (
-                    <button type="button" onClick={() => setOverrideCompetencies(true)} className="flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-xs font-medium transition-colors">
-                      <Shield className="w-3 h-3" /> Override
-                    </button>
-                  )}
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg border border-gray-200">
+              <div className="flex items-center justify-between gap-4 border-b border-gray-200 p-4 md:p-6">
+                <div>
+                  <h2 className="font-semibold text-gray-900">
+                    Section III (B) - Functional Competencies
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Review RO and RVO ratings first, then use revise mode to
+                    provide AA ratings.
+                  </p>
                 </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setReviseCompetenciesMode(!reviseCompetenciesMode)
+                  }
+                  className={
+                    reviseCompetenciesMode
+                      ? "text-sm text-amber-700 hover:text-amber-900 underline"
+                      : "flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 font-medium text-white transition-colors hover:bg-amber-700"
+                  }
+                >
+                  {!reviseCompetenciesMode && (
+                    <RefreshCw className="w-4 h-4" />
+                  )}
+                  {reviseCompetenciesMode
+                    ? "Cancel Revision"
+                    : "Revise Ratings"}
+                </button>
               </div>
+
               <div className="p-4 md:p-6">
                 <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-xs md:text-sm">
-                    <thead className="sticky top-0 z-10">
-                      {overrideCompetencies && (
-                        <tr>
-                          <th colSpan={2} className="border border-gray-200 px-2 py-1.5 bg-gray-50" />
-                          <th colSpan={3} className="border border-blue-200 px-2 py-1.5 text-center font-semibold text-blue-700 bg-blue-50">RO Assessment</th>
-                          <th colSpan={3} className="border border-amber-200 px-2 py-1.5 text-center font-semibold text-amber-700 bg-amber-50">RVO Assessment</th>
-                          <th colSpan={3} className="border border-green-300 px-2 py-1.5 text-center font-semibold text-green-700 bg-green-50">AA Override</th>
-                          <th className="border border-gray-200 px-2 py-1.5 bg-gray-50" />
-                        </tr>
-                      )}
-                      <tr className="bg-gray-50">
-                        <th className="border border-gray-200 px-2 py-2 text-left font-semibold text-gray-900 w-10">Sl.</th>
-                        <th className="border border-gray-200 px-2 py-2 text-left font-semibold text-gray-900">Competency</th>
-                        <th className={`border px-2 py-2 text-center font-semibold text-gray-900 ${overrideCompetencies ? "border-blue-200 bg-blue-50" : "border-gray-200 bg-gray-50"}`}>RO Rating</th>
-                        <th className={`border px-2 py-2 text-left font-semibold text-gray-900 ${overrideCompetencies ? "border-blue-200 bg-blue-50" : "border-gray-200 bg-gray-50"}`}>RO Remark</th>
-                        <th className={`border px-2 py-2 text-center font-semibold text-gray-900 ${overrideCompetencies ? "border-blue-200 bg-blue-50" : "border-gray-200 bg-gray-50"}`}>RO Score</th>
-                        {overrideCompetencies && (
+                  <table
+                    className={`w-full ${
+                      reviseCompetenciesMode
+                        ? "min-w-[1320px]"
+                        : "min-w-[980px]"
+                    }`}
+                  >
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th
+                          rowSpan={2}
+                          className="text-center py-3 px-4 text-sm font-medium text-gray-700"
+                        >
+                          #
+                        </th>
+                        <th
+                          rowSpan={2}
+                          className="text-left py-3 px-4 text-sm font-medium text-gray-700"
+                        >
+                          Competency
+                        </th>
+                        <th
+                          colSpan={3}
+                          className="text-center py-3 px-4 text-sm font-medium text-gray-700 bg-blue-50"
+                        >
+                          RO Evaluation
+                        </th>
+                        <th
+                          colSpan={3}
+                          className="text-center py-3 px-4 text-sm font-medium text-amber-800 bg-amber-50"
+                        >
+                          RVO Evaluation
+                        </th>
+                        {reviseCompetenciesMode && (
+                          <th
+                            colSpan={3}
+                            className="text-center py-3 px-4 text-sm font-medium text-green-800 bg-green-50"
+                          >
+                            AA Evaluation
+                          </th>
+                        )}
+                      </tr>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-center py-3 px-4 text-sm font-medium text-gray-700 bg-blue-50">
+                          Rating (1-10)
+                        </th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-gray-700 bg-blue-50">
+                          Weightage (%)
+                        </th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-gray-700 bg-blue-50">
+                          Score
+                        </th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-amber-800 bg-amber-50">
+                          Rating (1-10)
+                        </th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-amber-800 bg-amber-50">
+                          Weightage (%)
+                        </th>
+                        <th className="text-center py-3 px-4 text-sm font-medium text-amber-800 bg-amber-50">
+                          Score
+                        </th>
+                        {reviseCompetenciesMode && (
                           <>
-                            <th className="border border-amber-200 px-2 py-2 text-center font-semibold text-amber-800 bg-amber-50">RVO Rating</th>
-                            <th className="border border-amber-200 px-2 py-2 text-left font-semibold text-amber-800 bg-amber-50">RVO Remark</th>
-                            <th className="border border-amber-200 px-2 py-2 text-center font-semibold text-amber-800 bg-amber-50">RVO Score</th>
-                            <th className="border border-green-300 px-2 py-2 text-center font-semibold text-green-800 bg-green-50">AA Rating</th>
-                            <th className="border border-green-300 px-2 py-2 text-left font-semibold text-green-800 bg-green-50">Justification</th>
-                            <th className="border border-green-300 px-2 py-2 text-center font-semibold text-green-800 bg-green-50">Final Score</th>
+                            <th className="text-center py-3 px-4 text-sm font-medium text-green-800 bg-green-50">
+                              Rating (1-10)
+                            </th>
+                            <th className="text-center py-3 px-4 text-sm font-medium text-green-800 bg-green-50">
+                              Weightage (%)
+                            </th>
+                            <th className="text-center py-3 px-4 text-sm font-medium text-green-800 bg-green-50">
+                              Score
+                            </th>
                           </>
                         )}
-                        {!overrideCompetencies && (
-                          <>
-                            <th className="border border-gray-200 px-2 py-2 text-center font-semibold text-gray-900 bg-gray-50">RVO Rating</th>
-                            <th className="border border-gray-200 px-2 py-2 text-left font-semibold text-gray-900 bg-gray-50">RVO Remark</th>
-                            <th className="border border-gray-200 px-2 py-2 text-center font-semibold text-gray-900 bg-gray-50">RVO Score</th>
-                          </>
-                        )}
-                        <th className="border border-gray-200 px-2 py-2 text-center font-semibold text-gray-900 bg-gray-50">Wt. (%)</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {functionalCompetencies.map((comp) => {
-                        const roR = competencyRatings[comp.sl_no] || "";
-                        const rvoR = rvoCompetencyRatings[comp.sl_no] || "";
-                        const aaR = aaCompetencyRatings[comp.sl_no] || "";
-                        const effectiveR = getEffectiveRating(roR, rvoR, aaR);
-                        return (
-                          <tr key={comp.sl_no} className={`hover:bg-gray-50 bg-white ${!ratingsAgree(roR, rvoR) && !overrideCompetencies ? "bg-orange-50/40" : ""}`}>
-                            <td className="border border-gray-200 px-2 py-2 text-gray-900">{comp.sl_no}</td>
-                            <td className="border border-gray-200 px-2 py-2 text-gray-900">{comp.competency}</td>
-                            <td className={`border px-2 py-2 ${overrideCompetencies ? "border-blue-200 bg-blue-50/20" : "border-gray-200"}`}>
-                              <div className="px-2 py-1 border border-gray-300 rounded bg-gray-50 font-bold text-center text-gray-900">{roR || "—"}</div>
-                            </td>
-                            <td className={`border px-2 py-2 ${overrideCompetencies ? "border-blue-200 bg-blue-50/20" : "border-gray-200"}`}>
-                              <div className="px-2 py-1 border border-gray-300 rounded bg-gray-50 text-gray-700 min-w-[80px]">{competencyRemarks[comp.sl_no] || "—"}</div>
-                            </td>
-                            <td className={`border px-2 py-2 text-blue-600 font-semibold text-center ${overrideCompetencies ? "border-blue-200 bg-blue-50/20" : "border-gray-200"}`}>
-                              {calculateScore(roR, comp.weightage_percent)}
-                            </td>
-                            {overrideCompetencies ? (
-                              <>
-                                <td className="border border-amber-200 px-2 py-2 bg-amber-50/20">
-                                  <div className="px-2 py-1 border border-amber-200 rounded bg-white font-bold text-center text-gray-900">{rvoR || "—"}</div>
-                                </td>
-                                <td className="border border-amber-200 px-2 py-2 bg-amber-50/20">
-                                  <div className="px-2 py-1 border border-amber-200 rounded bg-white text-gray-700 min-w-[80px]">{rvoCompetencyRemarks[comp.sl_no] || "—"}</div>
-                                </td>
-                                <td className="border border-amber-200 px-2 py-2 text-amber-600 font-semibold text-center bg-amber-50/20">
-                                  {calculateScore(rvoR, comp.weightage_percent)}
-                                </td>
-                                <td className="border border-green-300 px-2 py-2 bg-green-50/30">
-                                  <select
-                                    title={`AA rating for ${comp.competency}`}
-                                    className="w-16 px-1 py-1 text-xs border border-green-300 rounded focus:ring-1 focus:ring-green-500 bg-white"
-                                    value={aaR}
-                                    onChange={(e) => setAaCompetencyRatings({ ...aaCompetencyRatings, [comp.sl_no]: e.target.value })}
-                                  >
-                                    <option value="">—</option>
-                                    {[1,2,3,4,5,6,7,8,9,10].map((n) => <option key={n} value={n}>{n}</option>)}
-                                  </select>
-                                </td>
-                                <td className="border border-green-300 px-2 py-2 bg-green-50/30">
-                                  <input
-                                    type="text"
-                                    className="w-full min-w-[100px] px-2 py-1 text-xs border border-green-300 rounded focus:ring-1 focus:ring-green-500 bg-white"
-                                    placeholder="Justification..."
-                                    value={aaCompetencyJustifications[comp.sl_no] || ""}
-                                    onChange={(e) => setAaCompetencyJustifications({ ...aaCompetencyJustifications, [comp.sl_no]: e.target.value })}
-                                  />
-                                </td>
-                                <td className="border border-green-300 px-2 py-2 text-green-700 font-semibold text-center bg-green-50/30">
-                                  {calculateScore(effectiveR, comp.weightage_percent)}
-                                </td>
-                              </>
-                            ) : (
-                              <>
-                                <td className="border border-gray-200 px-2 py-2">
-                                  <div className="flex items-center gap-1.5">
-                                    <div className="px-2 py-1 border border-gray-300 rounded bg-gray-50 font-bold text-center text-gray-900 w-12">{rvoR || "—"}</div>
-                                    <DiffBadge ro={roR} rvo={rvoR} />
-                                  </div>
-                                </td>
-                                <td className="border border-gray-200 px-2 py-2">
-                                  <div className="px-2 py-1 border border-gray-300 rounded bg-gray-50 text-gray-700 min-w-[80px]">{rvoCompetencyRemarks[comp.sl_no] || "—"}</div>
-                                </td>
-                                <td className="border border-gray-200 px-2 py-2 text-amber-600 font-semibold text-center">
-                                  {calculateScore(rvoR, comp.weightage_percent)}
-                                </td>
-                              </>
+                      {functionalCompetencies.map((item) => (
+                        <tr
+                          key={item.sl_no}
+                          className="border-b border-gray-100"
+                        >
+                          <td className="py-4 px-4 text-center text-sm text-gray-900">
+                            {item.sl_no}
+                          </td>
+                          <td className="py-4 px-4 text-sm font-medium text-gray-900">
+                            {item.competency}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm text-gray-900">
+                            {roCompetencyRatings[item.sl_no]}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm text-gray-900">
+                            {item.weightage_percent}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm font-semibold text-blue-600">
+                            {calculateScore(
+                              roCompetencyRatings[item.sl_no],
+                              item.weightage_percent,
                             )}
-                            <td className="border border-gray-200 px-2 py-2 text-gray-900 text-center font-medium">{comp.weightage_percent}%</td>
-                          </tr>
-                        );
-                      })}
-                      <tr className={`font-semibold ${overrideCompetencies ? "bg-green-50" : "bg-blue-50"}`}>
-                        <td colSpan={4} className={`border border-gray-200 px-2 py-2 text-right text-gray-900 ${overrideCompetencies ? "bg-green-50" : "bg-blue-50"}`}>Total Score:</td>
-                        <td className="border border-gray-200 px-2 py-2 text-blue-600 font-bold text-center bg-blue-50">{calculateTotalScore(competencyRatings, functionalCompetencies)}</td>
-                        {overrideCompetencies && (
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm text-gray-900 bg-amber-50/40">
+                            {rvoCompetencyRatings[item.sl_no]}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm text-gray-900 bg-amber-50/40">
+                            {item.weightage_percent}
+                          </td>
+                          <td className="py-4 px-4 text-center text-sm font-semibold text-amber-700 bg-amber-50/40">
+                            {calculateScore(
+                              rvoCompetencyRatings[item.sl_no],
+                              item.weightage_percent,
+                            )}
+                          </td>
+                          {reviseCompetenciesMode && (
+                            <>
+                              <td className="py-4 px-4 text-center bg-green-50/40">
+                                <select
+                                  value={aaCompetencyRatings[item.sl_no] || ""}
+                                  onChange={(e) =>
+                                    updateAaCompetencyRating(
+                                      item.sl_no,
+                                      e.target.value,
+                                    )
+                                  }
+                                  className="w-36 px-3 py-2 border border-green-300 rounded-lg bg-white text-sm"
+                                >
+                                  <option value="">Select</option>
+                                  {Array.from({ length: 10 }, (_, index) => {
+                                    const rating = String(index + 1);
+                                    return (
+                                      <option key={rating} value={rating}>
+                                        {rating}
+                                      </option>
+                                    );
+                                  })}
+                                </select>
+                              </td>
+                              <td className="py-4 px-4 text-center text-sm text-gray-900 bg-green-50/40">
+                                {item.weightage_percent}
+                              </td>
+                              <td className="py-4 px-4 text-center text-sm font-semibold text-green-700 bg-green-50/40">
+                                {calculateScore(
+                                  aaCompetencyRatings[item.sl_no] || "",
+                                  item.weightage_percent,
+                                )}
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                      ))}
+                      <tr className="bg-blue-50 font-semibold">
+                        <td
+                          colSpan={4}
+                          className="py-3 px-4 text-right text-sm text-gray-900"
+                        >
+                          RO Total Score:
+                        </td>
+                        <td className="py-3 px-4 text-center text-sm text-blue-700">
+                          {calculateTotalScore(
+                            roCompetencyRatings,
+                            functionalCompetencies,
+                          )}
+                        </td>
+                        <td
+                          colSpan={2}
+                          className="py-3 px-4 text-right text-sm text-gray-900 bg-amber-100"
+                        >
+                          RVO Total Score:
+                        </td>
+                        <td className="py-3 px-4 text-center text-sm text-amber-700 bg-amber-100">
+                          {calculateTotalScore(
+                            rvoCompetencyRatings,
+                            functionalCompetencies,
+                          )}
+                        </td>
+                        {reviseCompetenciesMode && (
                           <>
-                            <td colSpan={2} className="border border-amber-200 px-2 py-2 text-right text-gray-900 bg-amber-100">RVO:</td>
-                            <td className="border border-amber-200 px-2 py-2 text-amber-700 font-bold text-center bg-amber-100">{calculateTotalScore(rvoCompetencyRatings, functionalCompetencies)}</td>
-                            <td colSpan={2} className="border border-green-300 px-2 py-2 text-right text-gray-900 bg-green-100">AA Final:</td>
-                            <td className="border border-green-300 px-2 py-2 text-green-700 font-bold text-center bg-green-100">
+                            <td
+                              colSpan={2}
+                              className="py-3 px-4 text-right text-sm text-gray-900 bg-green-100"
+                            >
+                              AA Total Score:
+                            </td>
+                            <td className="py-3 px-4 text-center text-sm text-green-700 bg-green-100">
                               {calculateTotalScore(
-                                Object.fromEntries(functionalCompetencies.map((c) => [c.sl_no, getEffectiveRating(competencyRatings[c.sl_no] || "", rvoCompetencyRatings[c.sl_no] || "", aaCompetencyRatings[c.sl_no] || "")])),
+                                aaCompetencyRatings,
                                 functionalCompetencies,
                               )}
                             </td>
                           </>
                         )}
-                        {!overrideCompetencies && (
-                          <>
-                            <td colSpan={2} className="border border-gray-200 px-2 py-2 text-right text-gray-900 bg-amber-50">RVO Total:</td>
-                            <td className="border border-gray-200 px-2 py-2 text-amber-600 font-bold text-center bg-amber-50">{calculateTotalScore(rvoCompetencyRatings, functionalCompetencies)}</td>
-                          </>
-                        )}
-                        <td aria-label="Weightage" className={`border border-gray-200 px-2 py-2 ${overrideCompetencies ? "bg-green-50" : "bg-blue-50"}`} />
                       </tr>
                     </tbody>
                   </table>
@@ -913,291 +1527,221 @@ const AAApproval = () => {
             </div>
           </div>
         );
-      }
 
-      // ── Step 5: Overall Summary ───────────────────────────────────────────
       case 5:
         return (
-          <div className="space-y-4">
-            {/* RO Summary */}
-            <div className="bg-white rounded-lg border border-blue-200">
-              <div className="p-4 md:p-5 border-b border-blue-200 bg-blue-50">
-                <h2 className="font-semibold text-blue-900">Section IV – RO's Overall Summary</h2>
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg border border-gray-200">
+              <div className="flex items-center justify-between gap-4 border-b border-gray-200 p-4 md:p-6">
+                <div>
+                  <h2 className="font-semibold text-gray-900">
+                    Summary Review
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Review RO and RVO summaries first, then use revise mode to
+                    provide AA summary.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setReviseSummaryMode(!reviseSummaryMode)}
+                  className={
+                    reviseSummaryMode
+                      ? "text-sm text-amber-700 hover:text-amber-900 underline"
+                      : "flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 font-medium text-white transition-colors hover:bg-amber-700"
+                  }
+                >
+                  {!reviseSummaryMode && <RefreshCw className="w-4 h-4" />}
+                  {reviseSummaryMode ? "Cancel Revision" : "Revise Summary"}
+                </button>
               </div>
-              <div className="p-4 md:p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[["Key Outcomes Delivered", keyOutcomes], ["Strengths Observed", strengths], ["Area for Improvement", areasForImprovement], ["Overall Assessment", overallAssessment]].map(([label, value]) => (
-                  <div key={label} className={label === "Overall Assessment" ? "md:col-span-2" : ""}>
-                    <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">{label}</label>
-                    <div className="px-3 py-2.5 border border-blue-200 rounded-lg bg-white text-sm text-gray-800 min-h-[56px]">{value || <span className="text-gray-400 italic">Not provided</span>}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+              <div className="p-4 md:p-6 space-y-6">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                  {renderSectionCard(
+                    "RO Review Summary",
+                    "border-blue-200 bg-blue-50 text-blue-950",
+                    roSummary,
+                  )}
+                  {renderSectionCard(
+                    "RVO Review Summary",
+                    "border-amber-200 bg-amber-50 text-amber-950",
+                    rvoSummary,
+                  )}
+                </div>
 
-            {/* RVO Summary */}
-            <div className="bg-white rounded-lg border border-amber-200">
-              <div className="p-4 md:p-5 border-b border-amber-200 bg-amber-50">
-                <h2 className="font-semibold text-amber-900">RVO's Overall Summary</h2>
-              </div>
-              <div className="p-4 md:p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[["Key Outcomes (RVO)", rvoKeyOutcomes], ["Strengths (RVO)", rvoStrengths], ["Area for Improvement (RVO)", rvoAreasForImprovement], ["Overall Assessment (RVO)", rvoOverallAssessment]].map(([label, value]) => (
-                  <div key={label} className={label.includes("Overall") ? "md:col-span-2" : ""}>
-                    <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">{label}</label>
-                    <div className="px-3 py-2.5 border border-amber-200 rounded-lg bg-white text-sm text-gray-800 min-h-[56px]">{value || <span className="text-gray-400 italic">Not provided</span>}</div>
+                {reviseSummaryMode && (
+                  <div className="rounded-lg border border-green-200 bg-green-50 p-4 space-y-4">
+                    <h3 className="text-sm font-semibold text-green-900">
+                      AA Revised Summary
+                    </h3>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        KRA/KPI Validation Notes{" "}
+                        <span className="text-red-600">*</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        className="w-full px-3 py-2 border border-green-300 rounded-lg bg-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        value={aaKraKpiValidationNotes}
+                        onChange={(e) =>
+                          setAaKraKpiValidationNotes(e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Key Outcomes Delivered{" "}
+                          <span className="text-red-600">*</span>
+                        </label>
+                        <textarea
+                          rows={3}
+                          className="w-full px-3 py-2 border border-green-300 rounded-lg bg-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          value={aaKeyOutcomes}
+                          onChange={(e) => setAaKeyOutcomes(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Strength Observed{" "}
+                          <span className="text-red-600">*</span>
+                        </label>
+                        <textarea
+                          rows={3}
+                          className="w-full px-3 py-2 border border-green-300 rounded-lg bg-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          value={aaStrengths}
+                          onChange={(e) => setAaStrengths(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Improvement Area{" "}
+                          <span className="text-red-600">*</span>
+                        </label>
+                        <textarea
+                          rows={3}
+                          className="w-full px-3 py-2 border border-green-300 rounded-lg bg-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          value={aaAreasForImprovement}
+                          onChange={(e) =>
+                            setAaAreasForImprovement(e.target.value)
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Overall Assessment{" "}
+                          <span className="text-red-600">*</span>
+                        </label>
+                        <textarea
+                          rows={3}
+                          className="w-full px-3 py-2 border border-green-300 rounded-lg bg-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          value={aaOverallAssessment}
+                          onChange={(e) =>
+                            setAaOverallAssessment(e.target.value)
+                          }
+                        />
+                      </div>
+                    </div>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </div>
         );
 
-      // ── Step 6: Training Needs ────────────────────────────────────────────
       case 6:
         return (
-          <div className="space-y-4">
-            {/* RO Training */}
-            <div className="bg-white rounded-lg border border-blue-200">
-              <div className="p-4 border-b border-blue-200 bg-blue-50">
-                <h2 className="font-semibold text-blue-900">RO's Training Recommendations</h2>
-              </div>
-              <div className="p-4">
-                {roTrainings.length === 0 ? <p className="text-sm text-gray-500 italic">None added.</p> : (
-                  <div className="space-y-2">
-                    {roTrainings.map((t, i) => (
-                      <div key={t.id} className="flex items-start gap-3 p-3 border border-blue-100 rounded-lg bg-blue-50/30">
-                        <span className="text-xs font-bold text-blue-600 mt-0.5">{i + 1}.</span>
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-900">{t.title}</p>
-                          {t.description && <p className="text-xs text-gray-600 mt-0.5">{t.description}</p>}
-                        </div>
-                        <span className={`text-xs px-2 py-0.5 rounded font-medium ${t.priority === "high" ? "bg-red-100 text-red-700" : t.priority === "medium" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"}`}>{t.priority.charAt(0).toUpperCase() + t.priority.slice(1)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* RVO Training */}
-            <div className="bg-white rounded-lg border border-amber-200">
-              <div className="p-4 border-b border-amber-200 bg-amber-50">
-                <h2 className="font-semibold text-amber-900">RVO's Additional Training Recommendations</h2>
-              </div>
-              <div className="p-4">
-                {rvoTrainings.length === 0 ? <p className="text-sm text-gray-500 italic">None added.</p> : (
-                  <div className="space-y-2">
-                    {rvoTrainings.map((t, i) => (
-                      <div key={t.id} className="flex items-start gap-3 p-3 border border-amber-100 rounded-lg bg-amber-50/30">
-                        <span className="text-xs font-bold text-amber-600 mt-0.5">{i + 1}.</span>
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-900">{t.title}</p>
-                          {t.description && <p className="text-xs text-gray-600 mt-0.5">{t.description}</p>}
-                        </div>
-                        <span className={`text-xs px-2 py-0.5 rounded font-medium ${t.priority === "high" ? "bg-red-100 text-red-700" : t.priority === "medium" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"}`}>{t.priority.charAt(0).toUpperCase() + t.priority.slice(1)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* AA Additional Training */}
-            <div className="bg-white rounded-lg border border-green-300">
-              <div className="p-4 border-b border-green-200 bg-green-50 flex items-center justify-between">
-                <div>
-                  <h2 className="font-semibold text-green-900">AA's Additional Training (Optional)</h2>
-                  <p className="text-xs text-green-700 mt-0.5">Add any additional training you recommend</p>
-                </div>
-                {!showAaTrainingForm && (
-                  <button type="button" onClick={() => setShowAaTrainingForm(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-xs font-medium">
-                    + Add Training
-                  </button>
-                )}
-              </div>
-              <div className="p-4">
-                {showAaTrainingForm ? (
-                  <div className="border border-green-200 rounded-lg p-4 bg-green-50/30 space-y-3">
-                    <h3 className="text-sm font-semibold text-gray-900">New Training Recommendation</h3>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Title <span className="text-red-600">*</span></label>
-                      <input type="text" value={currentAaTraining.title} onChange={(e) => setCurrentAaTraining({ ...currentAaTraining, title: e.target.value })} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white" placeholder="Training program name..." />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Description</label>
-                      <textarea rows={2} value={currentAaTraining.description} onChange={(e) => setCurrentAaTraining({ ...currentAaTraining, description: e.target.value })} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white" placeholder="Brief description..." />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Priority</label>
-                      <select title="Training priority" value={currentAaTraining.priority} onChange={(e) => setCurrentAaTraining({ ...currentAaTraining, priority: e.target.value as "high" | "medium" | "low" })} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white">
-                        <option value="high">High</option>
-                        <option value="medium">Medium</option>
-                        <option value="low">Low</option>
-                      </select>
-                    </div>
-                    <div className="flex gap-2 justify-end pt-1">
-                      <button type="button" onClick={() => setShowAaTrainingForm(false)} className="px-4 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700">Cancel</button>
-                      <button type="button" onClick={handleSaveAaTraining} className="px-4 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700">Save</button>
-                    </div>
-                  </div>
-                ) : aaTrainings.length === 0 ? (
-                  <p className="text-sm text-gray-500 italic text-center py-4">No additional training added. Click "Add Training" to add.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {aaTrainings.map((t, i) => (
-                      <div key={t.id} className="flex items-start gap-3 p-3 border border-green-200 rounded-lg bg-green-50/30">
-                        <span className="text-xs font-bold text-green-700 mt-0.5">{i + 1}.</span>
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-900">{t.title}</p>
-                          {t.description && <p className="text-xs text-gray-600 mt-0.5">{t.description}</p>}
-                        </div>
-                        <span className={`text-xs px-2 py-0.5 rounded font-medium ${t.priority === "high" ? "bg-red-100 text-red-700" : t.priority === "medium" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"}`}>{t.priority.charAt(0).toUpperCase() + t.priority.slice(1)}</span>
-                        <button type="button" onClick={() => setAaTrainings(aaTrainings.filter((x) => x.id !== t.id))} className="text-red-400 hover:text-red-600 text-xs ml-1">✕</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-
-      // ── Step 7: AA Final Decision ─────────────────────────────────────────
-      case 7:
-        return (
-          <div className="space-y-4">
-            {/* Score Summary Card */}
+          <div className="space-y-6">
             <div className="bg-white rounded-lg border border-gray-200">
-              <div className="p-4 md:p-5 border-b border-gray-200">
-                <h2 className="font-semibold text-gray-900">Score Summary</h2>
-                <p className="text-sm text-gray-500 mt-0.5">RO vs RVO vs AA (if overridden)</p>
+              <div className="p-4 md:p-6 border-b border-gray-200">
+                <h2 className="font-semibold text-gray-900">
+                  AA Final Review
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Finalize the decision after reviewing RO and RVO observations.
+                </p>
               </div>
-              <div className="p-4 overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-gray-50 border-b border-gray-200">
-                      <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-700">Section</th>
-                      <th className="px-4 py-2.5 text-center text-xs font-semibold text-blue-700 bg-blue-50">RO Score</th>
-                      <th className="px-4 py-2.5 text-center text-xs font-semibold text-amber-700 bg-amber-50">RVO Score</th>
-                      <th className="px-4 py-2.5 text-center text-xs font-semibold text-green-700 bg-green-50">AA Override</th>
-                      <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-700">Final Score</th>
-                      <th className="px-4 py-2.5 text-center text-xs font-semibold text-gray-700">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      {
-                        section: "KRA Performance",
-                        ro: kras.reduce((s, k) => s + (k.ro.rating && k.ro.weightagePercent ? (parseFloat(k.ro.rating) / 10) * parseFloat(k.ro.weightagePercent) : 0), 0).toFixed(2),
-                        rvo: kras.reduce((s, k) => s + (k.rvo.rating && k.rvo.weightagePercent ? (parseFloat(k.rvo.rating) / 10) * parseFloat(k.rvo.weightagePercent) : 0), 0).toFixed(2),
-                        aaOverridden: kras.some((k) => k.aa.overridden),
-                        aa: kras.reduce((s, k) => { const r = k.aa.overridden ? k.aa.rating : k.rvo.rating; return s + (r && k.rvo.weightagePercent ? (parseFloat(r) / 10) * parseFloat(k.rvo.weightagePercent) : 0); }, 0).toFixed(2),
-                      },
-                      {
-                        section: "Personal Attributes",
-                        ro: calculateTotalScore(attributeRatings, personalAttributes),
-                        rvo: calculateTotalScore(rvoAttributeRatings, personalAttributes),
-                        aaOverridden: overrideAttributes && Object.keys(aaAttributeRatings).length > 0,
-                        aa: overrideAttributes ? calculateTotalScore(Object.fromEntries(personalAttributes.map((a) => [a.sl_no, getEffectiveRating(attributeRatings[a.sl_no] || "", rvoAttributeRatings[a.sl_no] || "", aaAttributeRatings[a.sl_no] || "")])), personalAttributes) : calculateTotalScore(rvoAttributeRatings, personalAttributes),
-                      },
-                      {
-                        section: "Functional Competencies",
-                        ro: calculateTotalScore(competencyRatings, functionalCompetencies),
-                        rvo: calculateTotalScore(rvoCompetencyRatings, functionalCompetencies),
-                        aaOverridden: overrideCompetencies && Object.keys(aaCompetencyRatings).length > 0,
-                        aa: overrideCompetencies ? calculateTotalScore(Object.fromEntries(functionalCompetencies.map((c) => [c.sl_no, getEffectiveRating(competencyRatings[c.sl_no] || "", rvoCompetencyRatings[c.sl_no] || "", aaCompetencyRatings[c.sl_no] || "")])), functionalCompetencies) : calculateTotalScore(rvoCompetencyRatings, functionalCompetencies),
-                      },
-                    ].map((row) => (
-                      <tr key={row.section} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{row.section}</td>
-                        <td className="px-4 py-3 text-center text-sm font-semibold text-blue-600 bg-blue-50/40">{row.ro}</td>
-                        <td className="px-4 py-3 text-center text-sm font-semibold text-amber-600 bg-amber-50/40">{row.rvo}</td>
-                        <td className="px-4 py-3 text-center text-sm font-semibold text-green-600 bg-green-50/40">{row.aaOverridden ? row.aa : <span className="text-gray-400 text-xs">No override</span>}</td>
-                        <td className="px-4 py-3 text-center text-sm font-bold text-gray-900">{row.aa}</td>
-                        <td className="px-4 py-3 text-center">
-                          {row.aaOverridden ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium"><Shield className="w-3 h-3" /> AA Override</span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium"><CheckCircle className="w-3 h-3" /> Accepted</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* AA Decision */}
-            <div className="bg-white rounded-lg border border-gray-200">
-              <div className="p-4 md:p-5 border-b border-gray-200">
-                <h2 className="font-semibold text-gray-900">AA's Final Assessment</h2>
-              </div>
-              <div className="p-4 md:p-5 space-y-4">
-                {/* Concur / Override decision */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Overall Decision <span className="text-red-600">*</span></label>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <label className={`flex items-center gap-3 flex-1 p-3 border-2 rounded-lg cursor-pointer transition-colors ${aaDecision === "agree" ? "border-green-500 bg-green-50" : "border-gray-200 hover:border-gray-300"}`}>
-                      <input type="radio" name="aaDecision" value="agree" checked={aaDecision === "agree"} onChange={() => setAaDecision("agree")} className="w-4 h-4 text-green-600" />
-                      <div>
-                        <p className="text-sm font-semibold text-gray-900">Concur with RVO</p>
-                        <p className="text-xs text-gray-500">Accept RVO's assessment in full</p>
-                      </div>
-                    </label>
-                    <label className={`flex items-center gap-3 flex-1 p-3 border-2 rounded-lg cursor-pointer transition-colors ${aaDecision === "override" ? "border-orange-500 bg-orange-50" : "border-gray-200 hover:border-gray-300"}`}>
-                      <input type="radio" name="aaDecision" value="override" checked={aaDecision === "override"} onChange={() => setAaDecision("override")} className="w-4 h-4 text-orange-600" />
-                      <div>
-                        <p className="text-sm font-semibold text-gray-900">Partial / Full Override</p>
-                        <p className="text-xs text-gray-500">Overrides already applied in previous steps</p>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-
-                {aaDecision === "override" && (
+              <div className="p-4 md:p-6 space-y-4">
+                {hasAaRevision && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Overall Justification for Override <span className="text-red-600">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Justification for Rating Revision{" "}
+                      <span className="text-red-600">*</span>
+                    </label>
                     <textarea
-                      rows={3}
-                      value={aaOverallJustification}
-                      onChange={(e) => setAaOverallJustification(e.target.value)}
-                      className="w-full px-3 py-2.5 text-sm border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 bg-white"
-                      placeholder="Provide overall justification for the override decision..."
+                      rows={4}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      value={justification}
+                      onChange={(e) => setJustification(e.target.value)}
                     />
                   </div>
                 )}
-
-                {/* AA Remarks */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">AA's Remarks <span className="text-red-600">*</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    AA Final Remarks <span className="text-red-600">*</span>
+                  </label>
                   <textarea
                     rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                     value={aaRemarks}
                     onChange={(e) => setAaRemarks(e.target.value)}
-                    className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white"
-                    placeholder="Provide your overall assessment, observations and recommendations..."
                   />
                 </div>
-
-                {/* Integrity Declaration */}
-                <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <input
-                    type="checkbox" id="integrity"
-                    checked={integrityConfirmed}
-                    onChange={(e) => setIntegrityConfirmed(e.target.checked)}
-                    className="mt-0.5 w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
-                  />
-                  <label htmlFor="integrity" className="text-sm text-gray-700 cursor-pointer">
-                    I, the Accepting Authority, confirm that I have reviewed this appraisal record in its entirety and that the assessment is fair, objective, and free from bias. I am satisfied with the ratings and remarks provided, and I authorize the finalization and locking of this record.
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Recommendations
                   </label>
+                  <textarea
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    value={aaRecommendations}
+                    onChange={(e) => setAaRecommendations(e.target.value)}
+                  />
                 </div>
+              </div>
+            </div>
 
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-20">
-                  <p className="text-xs text-red-800 flex items-start gap-2">
-                    <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                    <strong>Irreversible Action:</strong>&nbsp;Finalizing and locking this record is permanent. The appraisal cannot be modified after locking. Please review all sections carefully before proceeding.
-                  </p>
-                </div>
+            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg border-2 border-green-200 p-6">
+              <div className="text-center">
+                <p className="text-sm text-green-700 mb-2">Final Grade</p>
+                <p className="text-4xl font-bold text-green-900 mb-2">
+                  {finalGrade}
+                </p>
+                <p className="text-lg text-green-700">Score: {finalScore}/10</p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <h3 className="font-semibold text-gray-900 mb-3">
+                Final Review Snapshot
+              </h3>
+              <div className="space-y-3 text-sm text-gray-700">
+                <p>
+                  Overall AA rating:{" "}
+                  <span className="font-semibold text-gray-900">
+                    {ratings.find((item) => item.key === "overall")?.aa}
+                  </span>
+                </p>
+                <p>
+                  Rating status:{" "}
+                  <span className="font-semibold text-gray-900">
+                    {hasAaRevision ? "Revised by AA" : "Concurred with RVO"}
+                  </span>
+                </p>
+                <p>
+                  Summary notes ready:{" "}
+                  <span className="font-semibold text-gray-900">
+                    {aaKraKpiValidationNotes &&
+                    aaKeyOutcomes &&
+                    aaStrengths &&
+                    aaAreasForImprovement &&
+                    aaOverallAssessment
+                      ? "Yes"
+                      : "Pending"}
+                  </span>
+                </p>
               </div>
             </div>
           </div>
@@ -1208,187 +1752,245 @@ const AAApproval = () => {
     }
   };
 
-  // ─── Main Layout ───────────────────────────────────────────────────────────
   return (
     <div className="">
-      {/* Fixed Header */}
       <div
         className="fixed top-[20px] sm:top-[60px] left-0 lg:left-64 right-0 z-10 bg-white border-b border-gray-200 transition-all duration-300"
-        style={{ left: typeof window !== "undefined" && window.innerWidth >= 1024 ? sidebarCollapsed ? "5rem" : "16rem" : "0" }}
+        style={{
+          left:
+            typeof window !== "undefined" && window.innerWidth >= 1024
+              ? sidebarCollapsed
+                ? "5rem"
+                : "16rem"
+              : "0",
+        }}
       >
         <div className="px-4 lg:px-6 py-2 sm:py-2.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-3">
-              <Link to="/review/pending-approvals" className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+              <Link
+                to="/review/evaluations?tab=pending"
+                className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Back to Approvals"
+              >
                 <ArrowLeft className="w-5 h-5 text-gray-600" />
               </Link>
               <div className="leading-tight">
-                <h1 className="text-sm sm:text-lg font-bold text-gray-900">AA Final Approval</h1>
-                <p className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-tight">Employee ID: {employeeId}</p>
+                <h1 className="text-sm sm:text-lg font-bold text-gray-900">
+                  AA Final Approval
+                </h1>
+                <p className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-tight">
+                  Employee ID: {employeeId}
+                </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {isLocked && (
-                <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-bold">
-                  <Lock className="w-3.5 h-3.5" /> Record Locked
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={handleSaveDraft}
-                disabled={isLocked}
-                className="hidden md:flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 text-xs font-bold text-gray-700 shadow-sm transition-colors disabled:opacity-50"
-              >
-                <Save className="w-3.5 h-3.5" />
-                SAVE DRAFT
-              </button>
-            </div>
+            <button
+              onClick={handleSaveDraft}
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 text-xs font-bold text-gray-700 shadow-sm transition-colors"
+            >
+              <Save className="w-3.5 h-3.5" />
+              SAVE DRAFT
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Desktop Stepper */}
       <div
         className="hidden md:block fixed top-[109px] sm:top-[125px] left-0 lg:left-64 right-0 z-[9] bg-white border-b border-gray-200 shadow-sm transition-all duration-300"
-        style={{ left: typeof window !== "undefined" && window.innerWidth >= 1024 ? sidebarCollapsed ? "5rem" : "16rem" : "0" }}
+        style={{
+          left:
+            typeof window !== "undefined" && window.innerWidth >= 1024
+              ? sidebarCollapsed
+                ? "5rem"
+                : "16rem"
+              : "0",
+        }}
       >
         <div className="px-6 lg:px-8 py-2.5">
           <div className="flex items-start">
             {steps.map((step, index) => (
-              <div key={step.number} className="flex-1 flex flex-col items-center relative">
+              <div
+                key={step.number}
+                className="flex-1 flex flex-col items-center relative"
+              >
                 {index < steps.length - 1 && (
-                  <div className="absolute top-3 left-1/2 right-0 h-0.5 -translate-y-1/2 z-0" style={{ width: "calc(100% - 0.75rem)" }}>
-                    <div className={`h-full ${completedSteps.includes(step.number) ? "bg-green-600" : "bg-gray-200"}`} />
+                  <div
+                    className="absolute top-3 left-1/2 right-0 h-0.5 -translate-y-1/2 z-0"
+                    style={{ width: "calc(100% - 0.75rem)" }}
+                  >
+                    <div
+                      className={`h-full ${
+                        completedSteps.includes(step.number)
+                          ? "bg-green-600"
+                          : "bg-gray-200"
+                      }`}
+                    />
                   </div>
                 )}
+
                 <div className="relative z-10">
                   <button
-                    type="button"
                     onClick={() => handleStepClick(step.number)}
-                    disabled={!completedSteps.includes(step.number) && step.number !== currentStep && step.number !== currentStep + 1}
+                    disabled={
+                      !completedSteps.includes(step.number) &&
+                      step.number !== currentStep &&
+                      step.number !== currentStep + 1
+                    }
                     className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
-                      currentStep === step.number ? "bg-green-600 text-white" :
-                      completedSteps.includes(step.number) ? "bg-green-600 text-white cursor-pointer hover:bg-green-700" : "bg-gray-200 text-gray-500"
-                    } ${!completedSteps.includes(step.number) && step.number !== currentStep && step.number !== currentStep + 1 ? "cursor-not-allowed" : ""}`}
+                      currentStep === step.number
+                        ? "bg-blue-600 text-white"
+                        : completedSteps.includes(step.number)
+                          ? "bg-green-600 text-white cursor-pointer hover:bg-green-700"
+                          : "bg-gray-200 text-gray-500"
+                    } ${
+                      !completedSteps.includes(step.number) &&
+                      step.number !== currentStep &&
+                      step.number !== currentStep + 1
+                        ? "cursor-not-allowed"
+                        : ""
+                    }`}
                   >
-                    {completedSteps.includes(step.number) && <Check className="w-3.5 h-3.5" />}
+                    {completedSteps.includes(step.number) && (
+                      <Check className="w-3.5 h-3.5" />
+                    )}
                   </button>
                 </div>
-                <span className={`mt-1.5 text-xs font-medium whitespace-nowrap ${currentStep === step.number ? "text-green-600" : "text-gray-600"}`}>{step.title}</span>
+
+                <span
+                  className={`mt-1.5 text-xs font-medium whitespace-nowrap ${
+                    currentStep === step.number
+                      ? "text-blue-600"
+                      : "text-gray-600"
+                  }`}
+                >
+                  {step.title}
+                </span>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Spacer */}
-      <div className="h-[72px] sm:h-[109px] md:h-[130px]" />
+      <div className="h-[72px] sm:h-[109px] md:h-[130px]"></div>
 
-      {/* Mobile Stepper */}
       <div className="md:hidden">
-        <div className="bg-white rounded-lg border border-gray-200 p-4 mx-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold text-gray-900">Step {currentStep} of 7</span>
-            <span className="text-sm text-gray-600">{steps[currentStep - 1].fullTitle}</span>
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-semibold text-gray-900">
+              Step {currentStep} of 6
+            </span>
+            <span className="text-sm text-gray-600">
+              {steps[currentStep - 1].fullTitle}
+            </span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
-            <div className="bg-green-600 h-2 rounded-full transition-all duration-300" style={{ width: `${(currentStep / 7) * 100}%` }} />
+            <div
+              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${(currentStep / 6) * 100}%` }}
+            />
           </div>
         </div>
       </div>
 
-      {/* Step Content */}
-      <div className="px-4 lg:px-8">{renderStepContent()}</div>
+      <div className="px-4 lg:px-8 pb-24 md:pb-20">{renderStepContent()}</div>
 
-      {/* Desktop Bottom Nav */}
       <div
         className="hidden md:flex fixed bottom-0 left-0 lg:left-64 right-0 justify-between items-center gap-3 bg-white border-t border-gray-200 p-4 z-10 transition-all duration-300"
-        style={{ left: typeof window !== "undefined" && window.innerWidth >= 1024 ? sidebarCollapsed ? "5rem" : "16rem" : "0" }}
+        style={{
+          left:
+            typeof window !== "undefined" && window.innerWidth >= 1024
+              ? sidebarCollapsed
+                ? "5rem"
+                : "16rem"
+              : "0",
+        }}
       >
         <button
-          type="button"
           onClick={handlePrevious}
-          disabled={currentStep === 1 || isLocked}
-          className={`flex items-center gap-1.5 px-4 py-1.5 text-sm border border-gray-300 rounded-lg ${currentStep === 1 || isLocked ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"}`}
+          disabled={currentStep === 1}
+          className={`flex items-center gap-1.5 px-4 py-1.5 text-sm border border-gray-300 rounded-lg ${
+            currentStep === 1
+              ? "opacity-50 cursor-not-allowed"
+              : "hover:bg-gray-50"
+          }`}
         >
-          <ChevronLeft className="w-3.5 h-3.5" /> Previous
+          <ChevronLeft className="w-3.5 h-3.5" />
+          Previous
         </button>
+
         <div className="flex gap-2">
-          <button type="button" onClick={handleSaveDraft} disabled={isLocked} className="flex items-center gap-1.5 px-4 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50">
-            <Save className="w-3.5 h-3.5" /> Save Draft
-          </button>
           <button
-            type="button"
-            onClick={handleNext}
-            disabled={isLocked}
-            className={`flex items-center gap-1.5 px-4 py-1.5 text-sm rounded-lg text-white disabled:opacity-50 ${currentStep === 7 ? "bg-green-600 hover:bg-green-700" : "bg-blue-600 hover:bg-blue-700"}`}
+            onClick={handleSaveDraft}
+            className="flex items-center gap-1.5 px-4 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
           >
-            {currentStep === 7 ? (<><Lock className="w-3.5 h-3.5" /> Finalize &amp; Lock</>) : (<>Next <ChevronRight className="w-3.5 h-3.5" /></>)}
+            <Save className="w-3.5 h-3.5" />
+            Save Draft
+          </button>
+
+          <button
+            onClick={handleNext}
+            className="flex items-center gap-1.5 px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            {currentStep === 6 ? (
+              <>
+                <Lock className="w-3.5 h-3.5" />
+                Finalize & Lock
+              </>
+            ) : (
+              <>
+                Next
+                <ChevronRight className="w-3.5 h-3.5" />
+              </>
+            )}
           </button>
         </div>
       </div>
 
-      {/* Mobile Bottom Nav */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 z-40">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-40">
         <div className="flex gap-2">
-          <button type="button" onClick={handlePrevious} disabled={currentStep === 1 || isLocked} className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium ${currentStep === 1 || isLocked ? "opacity-50 cursor-not-allowed text-gray-400" : "hover:bg-gray-50 text-gray-700"}`}>
-            <ChevronLeft className="w-4 h-4" /> Prev
+          <button
+            onClick={handlePrevious}
+            disabled={currentStep === 1}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 border border-gray-300 rounded-lg font-medium ${
+              currentStep === 1
+                ? "opacity-50 cursor-not-allowed text-gray-400"
+                : "hover:bg-gray-50 text-gray-700"
+            }`}
+          >
+            <ChevronLeft className="w-5 h-5" />
+            Prev
           </button>
-          <button type="button" title="Save Draft" onClick={handleSaveDraft} disabled={isLocked} className="flex items-center justify-center px-3 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50">
-            <Save className="w-4 h-4" />
+
+          <button
+            onClick={handleSaveDraft}
+            className="flex items-center justify-center gap-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            <Save className="w-5 h-5" />
           </button>
-          <button type="button" onClick={handleNext} disabled={isLocked} className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white disabled:opacity-50 ${currentStep === 7 ? "bg-green-600 hover:bg-green-700" : "bg-blue-600 hover:bg-blue-700"}`}>
-            {currentStep === 7 ? (<><Lock className="w-4 h-4" /> Lock</>) : (<>Next <ChevronRight className="w-4 h-4" /></>)}
+
+          <button
+            onClick={handleNext}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+          >
+            {currentStep === 6 ? (
+              <>
+                <Lock className="w-5 h-5" />
+                Finalize
+              </>
+            ) : (
+              <>
+                Next
+                <ChevronRight className="w-5 h-5" />
+              </>
+            )}
           </button>
         </div>
       </div>
 
-      {/* Lock Confirmation Modal */}
-      {showLockConfirmation && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-5">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <Lock className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Finalize &amp; Lock Record</h3>
-                <p className="text-sm text-gray-600 mt-1">You are about to permanently lock the appraisal record for <strong>{employeeId}</strong>. This action cannot be undone.</p>
-              </div>
-            </div>
-
-            {/* Final checklist */}
-            <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-              <p className="text-xs font-semibold text-gray-700 mb-2">Pre-lock checklist:</p>
-              {[
-                ["All sections reviewed", true],
-                ["AA remarks filled", aaRemarks.trim().length > 0],
-                ["Overall decision selected", aaDecision !== ""],
-                ["Integrity declaration confirmed", integrityConfirmed],
-              ].map(([label, done]) => (
-                <div key={label as string} className="flex items-center gap-2">
-                  <div className={`w-4 h-4 rounded-full flex items-center justify-center ${done ? "bg-green-500" : "bg-red-400"}`}>
-                    {done ? <Check className="w-2.5 h-2.5 text-white" /> : <span className="text-white text-[9px] font-bold">✕</span>}
-                  </div>
-                  <span className={`text-xs ${done ? "text-gray-700" : "text-red-600 font-medium"}`}>{label as string}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex gap-3 pt-1">
-              <button type="button" onClick={() => setShowLockConfirmation(false)} className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleFinalLock}
-                disabled={!aaRemarks.trim() || !integrityConfirmed || aaDecision === ""}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Lock className="w-4 h-4" /> Confirm &amp; Lock
-              </button>
-            </div>
-          </div>
+      {showSuccessMessage && (
+        <div className="fixed top-4 right-4 z-50 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg shadow-lg flex items-center gap-2 animate-fade-in">
+          <CheckCircle className="w-5 h-5" />
+          <p className="text-sm font-medium">Action completed successfully!</p>
         </div>
       )}
     </div>

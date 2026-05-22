@@ -1,15 +1,145 @@
-import { useState } from 'react';
-import { LayoutGrid, List, Filter, Eye, Edit, CheckCircle, Clock, X, RotateCcw, Save, Upload } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
+import { LayoutGrid, List, Filter, Eye, Edit, CheckCircle, Clock, X, Trash2, Save, Upload, Download, PenTool, Shield, Plus } from 'lucide-react';
 import KRACard from '../../components/KRACard';
 import { toast } from 'sonner';
 
+const EMPLOYEE_KRA_STORAGE_KEY = 'employee_kras';
+
+type KRAItem = {
+  id: string;
+  sl: string;
+  code: string;
+  kpi: string;
+  targetAnnual: string;
+  actualAchievement: string;
+  sourceRefNo: string;
+  uploadedFiles: Array<{ name: string; url: string }>;
+  employeeNotes?: string;
+  trainingRequirements?: string;
+  status?: 'Approved' | 'Pending' | 'Draft';
+  type?: 'initial' | 'revised';
+  ro: {
+    rating: string;
+    weightagePercent: string;
+    score: string;
+    validationNotes: string;
+  };
+  rvo: {
+    rating: string;
+    weightagePercent: string;
+    score: string;
+    validationNotes: string;
+  };
+  aa: string;
+  aaValidationNotes: string;
+};
+
+const DEFAULT_KRAS: KRAItem[] = [
+  {
+    id: '1',
+    sl: '1',
+    code: 'KRA-001',
+    kpi: 'Customer Service Excellence - Maintain high standards of customer service and satisfaction',
+    targetAnnual: 'Customer satisfaction rating above 4.5/5 and response time within 24 hours',
+    actualAchievement: 'Achieved 4.7/5 rating with average response time of 18 hours',
+    sourceRefNo: 'CS-2026-001',
+    uploadedFiles: [
+      { name: 'Customer_Feedback_Report_Q1.pdf', url: '#' },
+      { name: 'Response_Time_Analysis.xlsx', url: '#' },
+    ],
+    employeeNotes: '',
+    trainingRequirements: '',
+    status: 'Approved',
+    type: 'initial',
+    ro: {
+      rating: '9',
+      weightagePercent: '25',
+      score: '2.25',
+      validationNotes: 'Excellent performance in customer service. Exceeded targets consistently.',
+    },
+    rvo: {
+      rating: '9',
+      weightagePercent: '25',
+      score: '2.25',
+      validationNotes: 'Outstanding achievement. Recommends for recognition.',
+    },
+    aa: 'Approved with commendation',
+    aaValidationNotes: 'Exemplary performance in customer service domain.',
+  },
+  {
+    id: '2',
+    sl: '2',
+    code: 'KRA-002',
+    kpi: 'Process Improvement - Identify and implement process improvements to enhance operational efficiency',
+    targetAnnual: 'Implement 3 process improvements with cost savings of INR 50,000',
+    actualAchievement: 'Implemented 4 improvements with total cost savings of INR 65,000',
+    sourceRefNo: 'PI-2026-002',
+    uploadedFiles: [
+      { name: 'Process_Improvement_Report.pdf', url: '#' },
+      { name: 'Cost_Savings_Analysis.xlsx', url: '#' },
+      { name: 'Implementation_Timeline.pdf', url: '#' },
+    ],
+    employeeNotes: '',
+    trainingRequirements: '',
+    status: 'Pending',
+    type: 'initial',
+    ro: {
+      rating: '8',
+      weightagePercent: '20',
+      score: '1.6',
+      validationNotes: 'Good performance. Exceeded the target number of improvements.',
+    },
+    rvo: {
+      rating: '8',
+      weightagePercent: '20',
+      score: '1.6',
+      validationNotes: 'Agrees with RO assessment. Good initiative shown.',
+    },
+    aa: '',
+    aaValidationNotes: '',
+  },
+  {
+    id: '3',
+    sl: '3',
+    code: 'KRA-003',
+    kpi: 'Team Collaboration - Foster effective collaboration within the team and across departments',
+    targetAnnual: 'Participate in 2 cross-functional projects with team satisfaction score of 4.0+',
+    actualAchievement: 'Participated in 3 projects with team satisfaction score of 4.3',
+    sourceRefNo: 'TC-2026-003',
+    uploadedFiles: [
+      { name: 'Team_Feedback_Survey.pdf', url: '#' },
+    ],
+    employeeNotes: '',
+    trainingRequirements: '',
+    status: 'Approved',
+    type: 'revised',
+    ro: {
+      rating: '8',
+      weightagePercent: '15',
+      score: '1.2',
+      validationNotes: 'Strong collaboration skills demonstrated.',
+    },
+    rvo: {
+      rating: '',
+      weightagePercent: '',
+      score: '',
+      validationNotes: '',
+    },
+    aa: '',
+    aaValidationNotes: '',
+  },
+];
+
 const ViewKRAs = () => {
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
   const [filterType, setFilterType] = useState<'all' | 'initial' | 'revised'>('all');
-  const [selectedKRA, setSelectedKRA] = useState<typeof kras[0] | null>(null);
-  const [reviseKRA, setReviseKRA] = useState<typeof kras[0] | null>(null);
-
-  // Revise form state
+  const [kras, setKras] = useState<KRAItem[]>([]);
+  const [selectedKRA, setSelectedKRA] = useState<KRAItem | null>(null);
+  const [reviseKRA, setReviseKRA] = useState<KRAItem | null>(null);
+  const [showSignModal, setShowSignModal] = useState(false);
+  const [signMethod, setSignMethod] = useState<'dsc' | 'esign' | null>(null);
   const [reviseKPI, setReviseKPI] = useState('');
   const [reviseTarget, setReviseTarget] = useState('');
   const [reviseAchievement, setReviseAchievement] = useState('');
@@ -18,115 +148,143 @@ const ViewKRAs = () => {
   // Always show employee-level view (no evaluation fields) in View KRAs page
   const userRole = 'Employee' as const;
 
-  const kras = [
-    {
-      id: '1',
-      sl: '1',
-      code: 'KRA-001',
-      kpi: 'Customer Service Excellence - Maintain high standards of customer service and satisfaction',
-      targetAnnual: 'Customer satisfaction rating above 4.5/5 and response time within 24 hours',
-      actualAchievement: 'Achieved 4.7/5 rating with average response time of 18 hours',
-      sourceRefNo: 'CS-2026-001',
-      uploadedFiles: [
-        { name: 'Customer_Feedback_Report_Q1.pdf', url: '#' },
-        { name: 'Response_Time_Analysis.xlsx', url: '#' },
-      ],
-      status: 'Approved' as const,
-      type: 'initial' as const,
-      ro: {
-        rating: '9',
-        weightagePercent: '25',
-        score: '2.25',
-        validationNotes: 'Excellent performance in customer service. Exceeded targets consistently.',
-      },
-      rvo: {
-        rating: '9',
-        weightagePercent: '25',
-        score: '2.25',
-        validationNotes: 'Outstanding achievement. Recommends for recognition.',
-      },
-      aa: 'Approved with commendation',
-      aaValidationNotes: 'Exemplary performance in customer service domain.',
-    },
-    {
-      id: '2',
-      sl: '2',
-      code: 'KRA-002',
-      kpi: 'Process Improvement - Identify and implement process improvements to enhance operational efficiency',
-      targetAnnual: 'Implement 3 process improvements with cost savings of INR 50,000',
-      actualAchievement: 'Implemented 4 improvements with total cost savings of INR 65,000',
-      sourceRefNo: 'PI-2026-002',
-      uploadedFiles: [
-        { name: 'Process_Improvement_Report.pdf', url: '#' },
-        { name: 'Cost_Savings_Analysis.xlsx', url: '#' },
-        { name: 'Implementation_Timeline.pdf', url: '#' },
-      ],
-      status: 'Pending' as const,
-      type: 'initial' as const,
-      ro: {
-        rating: '8',
-        weightagePercent: '20',
-        score: '1.6',
-        validationNotes: 'Good performance. Exceeded the target number of improvements.',
-      },
-      rvo: {
-        rating: '8',
-        weightagePercent: '20',
-        score: '1.6',
-        validationNotes: 'Agrees with RO assessment. Good initiative shown.',
-      },
-      aa: '',
-      aaValidationNotes: '',
-    },
-    {
-      id: '3',
-      sl: '3',
-      code: 'KRA-003',
-      kpi: 'Team Collaboration - Foster effective collaboration within the team and across departments',
-      targetAnnual: 'Participate in 2 cross-functional projects with team satisfaction score of 4.0+',
-      actualAchievement: 'Participated in 3 projects with team satisfaction score of 4.3',
-      sourceRefNo: 'TC-2026-003',
-      uploadedFiles: [
-        { name: 'Team_Feedback_Survey.pdf', url: '#' },
-      ],
-      status: 'Approved' as const,
-      type: 'revised' as const,
-      ro: {
-        rating: '8',
-        weightagePercent: '15',
-        score: '1.2',
-        validationNotes: 'Strong collaboration skills demonstrated.',
-      },
-      rvo: {
-        rating: '',
-        weightagePercent: '',
-        score: '',
-        validationNotes: '',
-      },
-      aa: '',
-      aaValidationNotes: '',
-    },
-  ];
+  useEffect(() => {
+    const savedKras = localStorage.getItem(EMPLOYEE_KRA_STORAGE_KEY);
+
+    if (savedKras) {
+      try {
+        setKras(JSON.parse(savedKras));
+        return;
+      } catch (error) {
+        console.error('Error loading employee KRAs:', error);
+      }
+    }
+
+    localStorage.setItem(
+      EMPLOYEE_KRA_STORAGE_KEY,
+      JSON.stringify(DEFAULT_KRAS),
+    );
+    setKras(DEFAULT_KRAS);
+  }, []);
 
   const filteredKRAs = kras.filter(kra => {
     if (filterType === 'all') return true;
     return kra.type === filterType;
   });
 
-  const handleReviseClick = (kra: typeof kras[0]) => {
-    setReviseKRA(kra);
-    setReviseKPI(kra.kpi);
-    setReviseTarget(kra.targetAnnual);
-    setReviseAchievement(kra.actualAchievement);
-    setReviseSourceRef(kra.sourceRefNo);
+  const handleDownloadPDF = () => {
+    toast.success('KRA/KPI document downloaded successfully!');
+  };
+
+  const handleDSCSign = () => {
+    setSignMethod('dsc');
+    setShowSignModal(true);
+  };
+
+  const handleESign = () => {
+    setSignMethod('esign');
+    setShowSignModal(true);
+  };
+
+  const handleSignSubmit = () => {
+    if (signMethod === 'dsc') {
+      toast.success('Document signed successfully using DSC!');
+    } else if (signMethod === 'esign') {
+      toast.success('Document signed successfully using eSign!');
+    }
+    setShowSignModal(false);
+    setSignMethod(null);
+    
+    // Show submission confirmation
+    setTimeout(() => {
+      toast.success('KRA/KPIs submitted for approval!', { duration: 4000 });
+    }, 500);
+  };
+
+  const handleAddNewKRA = () => {
+    navigate('/my-pms/kra-entry');
+  };
+
+  const handleEditKRA = (kra: KRAItem) => {
+    navigate('/my-pms/kra-entry', {
+      state: { editKRA: kra },
+    });
+  };
+
+  const handleDeleteKRA = (kra: KRAItem) => {
+    const confirmed = window.confirm(
+      `Delete ${kra.code} from your KRA/KPI list?`,
+    );
+
+    if (!confirmed) return;
+
+    const updatedKras = kras
+      .filter((item) => item.id !== kra.id)
+      .map((item, index) => ({
+        ...item,
+        sl: String(index + 1),
+      }));
+
+    setKras(updatedKras);
+    localStorage.setItem(
+      EMPLOYEE_KRA_STORAGE_KEY,
+      JSON.stringify(updatedKras),
+    );
+    toast.success('KRA/KPI deleted successfully!');
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900">View KRA/KPIs</h1>
-        <p className="text-gray-600 mt-1">View all your Key Result Areas and Key Performance Indicators</p>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900">View KRA/KPIs</h1>
+          <p className="text-gray-600 mt-1">View, sign, and submit your Key Result Areas and Key Performance Indicators</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={handleAddNewKRA}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            <Plus className="w-4 h-4" />
+            Add New KRA/KPI
+          </button>
+          <button
+            onClick={handleDownloadPDF}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+          >
+            <Download className="w-4 h-4" />
+            Download PDF
+          </button>
+        </div>
+      </div>
+
+      {/* Action Buttons for Signing */}
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="flex-1">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">Sign & Submit Your KRA/KPIs</h2>
+            <p className="text-sm text-gray-600">
+              Review your entries and digitally sign to submit for approval. You can use DSC (Digital Signature Certificate) or eSign for authentication.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={handleDSCSign}
+              className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-green-600 text-green-700 rounded-lg hover:bg-green-50 font-medium"
+            >
+              <Shield className="w-5 h-5" />
+              Sign with DSC
+            </button>
+            <button
+              onClick={handleESign}
+              className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium"
+            >
+              <PenTool className="w-5 h-5" />
+              Sign with eSign
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Controls */}
@@ -185,7 +343,15 @@ const ViewKRAs = () => {
       {viewMode === 'card' && (
         <div className="space-y-6 divide-y divide-gray-200 max-h-[calc(100vh-400px)] overflow-y-auto">
           {filteredKRAs.map((kra) => (
-            <KRACard key={kra.id} kra={kra} userRole={userRole} />
+            <div key={kra.id} className="pt-6 first:pt-0">
+              <KRACard 
+                kra={kra} 
+                userRole={userRole} 
+                onView={() => setSelectedKRA(kra)}
+                onEdit={() => handleEditKRA(kra)}
+                onDelete={() => handleDeleteKRA(kra)}
+              />
+            </div>
           ))}
         </div>
       )}
@@ -280,11 +446,18 @@ const ViewKRAs = () => {
                           View
                         </button>
                         <button 
-                          onClick={() => handleReviseClick(kra)}
-                          className="text-purple-600 hover:text-purple-700 text-sm font-medium inline-flex items-center gap-1"
+                          onClick={() => handleEditKRA(kra)}
+                          className="text-amber-600 hover:text-amber-700 text-sm font-medium inline-flex items-center gap-1"
                         >
-                          <RotateCcw className="w-4 h-4" />
-                          Revise
+                          <Edit className="w-4 h-4" />
+                          Edit
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteKRA(kra)}
+                          className="text-red-600 hover:text-red-700 text-sm font-medium inline-flex items-center gap-1"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete
                         </button>
                       </div>
                     </td>
@@ -342,11 +515,18 @@ const ViewKRAs = () => {
                     View Details
                   </button>
                   <button 
-                    onClick={() => handleReviseClick(kra)}
-                    className="text-purple-600 hover:text-purple-700 text-sm font-medium inline-flex items-center gap-1"
+                    onClick={() => handleEditKRA(kra)}
+                    className="text-amber-600 hover:text-amber-700 text-sm font-medium inline-flex items-center gap-1"
                   >
-                    <RotateCcw className="w-4 h-4" />
-                    Revise
+                    <Edit className="w-4 h-4" />
+                    Edit
+                  </button>
+                  <button 
+                    onClick={() => handleDeleteKRA(kra)}
+                    className="text-red-600 hover:text-red-700 text-sm font-medium inline-flex items-center gap-1"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete
                   </button>
                 </div>
               </div>
@@ -520,6 +700,143 @@ const ViewKRAs = () => {
               >
                 <Save className="w-4 h-4" />
                 Submit Revision
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sign Modal */}
+      {showSignModal && (
+        <div 
+          className="fixed inset-0 bg-black/20 backdrop-blur-md flex items-center justify-center z-50 p-4"
+          onClick={() => setShowSignModal(false)}
+        >
+          <div 
+            className="bg-white rounded-lg shadow-xl max-w-md w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                {signMethod === 'dsc' ? (
+                  <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                    <Shield className="w-6 h-6 text-green-600" />
+                  </div>
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+                    <PenTool className="w-6 h-6 text-purple-600" />
+                  </div>
+                )}
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    {signMethod === 'dsc' ? 'Sign with DSC' : 'Sign with eSign'}
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Digitally sign and submit your KRA/KPIs
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6">
+              {signMethod === 'dsc' ? (
+                <div className="space-y-4">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h3 className="font-semibold text-green-900 mb-2">DSC Authentication</h3>
+                    <p className="text-sm text-green-800">
+                      Your Digital Signature Certificate will be used to sign this document. 
+                      Please ensure your DSC token is connected.
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Select DSC Certificate
+                    </label>
+                    <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                      <option>John Doe - DSC Class 3 (Valid till 31/12/2026)</option>
+                      <option>John Doe - DSC Class 2 (Valid till 15/06/2026)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Enter PIN
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="Enter your DSC PIN"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <h3 className="font-semibold text-purple-900 mb-2">eSign via Aadhaar</h3>
+                    <p className="text-sm text-purple-800">
+                      An OTP will be sent to your registered mobile number linked with your Aadhaar.
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Aadhaar Number
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="XXXX XXXX XXXX"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      maxLength={12}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      OTP
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Enter 6-digit OTP"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        maxLength={6}
+                      />
+                      <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 whitespace-nowrap">
+                        Send OTP
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <h4 className="text-sm font-semibold text-gray-900 mb-2">Summary</h4>
+                <div className="space-y-1 text-sm text-gray-600">
+                  <p>• Total KRA/KPIs: <span className="font-medium text-gray-900">{kras.length}</span></p>
+                  <p>• Document will be submitted to: <span className="font-medium text-gray-900">Sarah Williams (RO)</span></p>
+                  <p>• Action: <span className="font-medium text-gray-900">Submit for Approval</span></p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-200 bg-gray-50 flex justify-end gap-2">
+              <button
+                onClick={() => setShowSignModal(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSignSubmit}
+                className={`flex items-center gap-2 px-6 py-2 text-white rounded-lg ${
+                  signMethod === 'dsc'
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : 'bg-purple-600 hover:bg-purple-700'
+                }`}
+              >
+                {signMethod === 'dsc' ? <Shield className="w-4 h-4" /> : <PenTool className="w-4 h-4" />}
+                Sign & Submit
               </button>
             </div>
           </div>

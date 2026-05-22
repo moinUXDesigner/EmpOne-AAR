@@ -4,7 +4,7 @@ import { User, Lock, LogIn } from 'lucide-react';
 
 const Login = () => {
   const navigate = useNavigate();
-  const [selectedRole, setSelectedRole] = useState<'Employee' | 'RO' | 'RVO' | 'AA' | 'HRD'>('Employee');
+  const [selectedRole, setSelectedRole] = useState<'Employee' | 'RO' | 'RVO' | 'AA' | 'HRD' | 'PO' | 'AC'>('Employee');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
@@ -23,6 +23,8 @@ const Login = () => {
     { value: 'RO', label: 'Reporting Officer', description: 'Review and evaluate subordinates' },
     { value: 'RVO', label: 'Reviewing Officer', description: 'Review RO evaluations' },
     { value: 'AA', label: 'Accepting Authority', description: 'Final approval authority' },
+    { value: 'PO', label: 'Personnel Officer (APAR Cell)', description: 'Review AARs and disclose scores' },
+    { value: 'AC', label: 'Appeal Committee', description: 'Final decision on representations' },
     { value: 'HRD', label: 'HRD Admin', description: 'System administration and analytics' },
   ];
 
