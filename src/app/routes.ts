@@ -27,58 +27,61 @@ import Reports from "./pages/Reports";
 import Activity from "./pages/Activity";
 import NotFound from "./pages/NotFound";
 
-export const router = createBrowserRouter([
-  {
-    path: "/login",
-    Component: Login,
-  },
-  {
-    path: "/",
-    Component: Root,
-    children: [
-      { index: true, Component: Dashboard },
-      { path: "profile", Component: Profile },
-      { path: "officer-dashboard", Component: OfficerDashboard },
+export const router = createBrowserRouter(
+  [
+    {
+      path: "/login",
+      Component: Login,
+    },
+    {
+      path: "/",
+      Component: Root,
+      children: [
+        { index: true, Component: Dashboard },
+        { path: "profile", Component: Profile },
+        { path: "officer-dashboard", Component: OfficerDashboard },
 
-      // Employee Routes
-      { path: "my-pms/kra-entry", Component: KRAEntry },
-      { path: "my-pms/view-kras", Component: ViewKRAs },
-      { path: "my-pms/mid-year-review", Component: MidYearReview },
-      { path: "my-pms/final-score", Component: FinalScore },
-      { path: "my-pms/representation", Component: Representation },
-      { path: "my-pms/training", Component: TrainingDevelopment },
+        // Employee Routes
+        { path: "my-pms/kra-entry", Component: KRAEntry },
+        { path: "my-pms/view-kras", Component: ViewKRAs },
+        { path: "my-pms/mid-year-review", Component: MidYearReview },
+        { path: "my-pms/final-score", Component: FinalScore },
+        { path: "my-pms/representation", Component: Representation },
+        { path: "my-pms/training", Component: TrainingDevelopment },
 
-      // RO Routes
-      { path: "review/evaluations", Component: Evaluations },
-      { path: "review/pending-approvals", Component: PendingApprovals },
-      { path: "review/recently-completed", Component: RecentlyCompleted },
-      { path: "review/evaluation/:employeeId", Component: Evaluation },
+        // RO Routes
+        { path: "review/evaluations", Component: Evaluations },
+        { path: "review/pending-approvals", Component: PendingApprovals },
+        { path: "review/recently-completed", Component: RecentlyCompleted },
+        { path: "review/evaluation/:employeeId", Component: Evaluation },
 
-      // RVO Routes
-      { path: "rvo/review/:employeeId", Component: RVOReview },
+        // RVO Routes
+        { path: "rvo/review/:employeeId", Component: RVOReview },
 
-      // AA Routes
-      { path: "aa/approval/:employeeId", Component: AAApproval },
+        // AA Routes
+        { path: "aa/approval/:employeeId", Component: AAApproval },
 
-      // PO (Personnel Officer / APAR Cell) Routes
-      { path: "po/queue", Component: POQueue },
-      { path: "po/review/:employeeId", Component: POReview },
-      { path: "po/representation-review/:caseId", Component: PORepresentationReview },
+        // PO (Personnel Officer / APAR Cell) Routes
+        { path: "po/queue", Component: POQueue },
+        { path: "po/review/:employeeId", Component: POReview },
+        { path: "po/representation-review/:caseId", Component: PORepresentationReview },
 
-      // AC (Appeal Committee) Routes
-      { path: "ac/queue", Component: AppealQueue },
-      { path: "ac/decision/:caseId", Component: AppealDecision },
+        // AC (Appeal Committee) Routes
+        { path: "ac/queue", Component: AppealQueue },
+        { path: "ac/decision/:caseId", Component: AppealDecision },
 
-      // HRD Routes
-      { path: "analytics", Component: Analytics },
-      { path: "administration", Component: Administration },
+        // HRD Routes
+        { path: "analytics", Component: Analytics },
+        { path: "administration", Component: Administration },
 
-      // Reports
-      { path: "reports", Component: Reports },
+        // Reports
+        { path: "reports", Component: Reports },
 
-      { path: "activity", Component: Activity },
+        { path: "activity", Component: Activity },
 
-      { path: "*", Component: NotFound },
-    ],
-  },
-]);
+        { path: "*", Component: NotFound },
+      ],
+    },
+  ],
+  { basename: "/EmpOne-AAR" }
+);
