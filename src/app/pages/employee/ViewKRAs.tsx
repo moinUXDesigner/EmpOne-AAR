@@ -133,7 +133,7 @@ const DEFAULT_KRAS: KRAItem[] = [
 
 const ViewKRAs = () => {
   const navigate = useNavigate();
-  const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
+  const [viewMode, setViewMode] = useState<'card' | 'table'>('table');
   const [filterType, setFilterType] = useState<'all' | 'initial' | 'revised'>('all');
   const [kras, setKras] = useState<KRAItem[]>([]);
   const [selectedKRA, setSelectedKRA] = useState<KRAItem | null>(null);
