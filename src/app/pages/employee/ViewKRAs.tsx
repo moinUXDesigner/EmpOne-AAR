@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { LayoutGrid, List, Filter, Eye, Edit, CheckCircle, Clock, X, Trash2, Save, Upload, Download, PenTool, Shield, Plus } from 'lucide-react';
+import { LayoutGrid, List, Filter, Eye, Edit, CheckCircle, Clock, X, Trash2, Save, Upload, Download, PenTool, Shield, Plus, Calendar, MapPin, User, Users, Briefcase } from 'lucide-react';
+import { getEmployeePeriods, formatPeriodDate, type EmployeePeriod } from '../../data/employeePeriods';
 import KRACard from '../../components/KRACard';
 import { toast } from 'sonner';
 
@@ -33,6 +34,9 @@ type KRAItem = {
   };
   aa: string;
   aaValidationNotes: string;
+  period_id?: string | null;
+  period_start_date?: string | null;
+  period_end_date?: string | null;
 };
 
 const DEFAULT_KRAS: KRAItem[] = [
@@ -52,6 +56,9 @@ const DEFAULT_KRAS: KRAItem[] = [
     trainingRequirements: '',
     status: 'Approved',
     type: 'initial',
+    period_id: 'P1',
+    period_start_date: '2025-04-01',
+    period_end_date: '2025-06-07',
     ro: {
       rating: '9',
       weightagePercent: '25',
@@ -84,6 +91,9 @@ const DEFAULT_KRAS: KRAItem[] = [
     trainingRequirements: '',
     status: 'Pending',
     type: 'initial',
+    period_id: 'P1',
+    period_start_date: '2025-04-01',
+    period_end_date: '2025-06-07',
     ro: {
       rating: '8',
       weightagePercent: '20',
@@ -114,6 +124,9 @@ const DEFAULT_KRAS: KRAItem[] = [
     trainingRequirements: '',
     status: 'Approved',
     type: 'revised',
+    period_id: 'P2',
+    period_start_date: '2025-06-08',
+    period_end_date: '2026-03-31',
     ro: {
       rating: '8',
       weightagePercent: '15',
@@ -145,8 +158,17 @@ const ViewKRAs = () => {
   const [reviseAchievement, setReviseAchievement] = useState('');
   const [reviseSourceRef, setReviseSourceRef] = useState('');
 
+  const [periods, setPeriods] = useState<EmployeePeriod[]>([]);
+  const [activeTab, setActiveTab] = useState<string>('');
+
   // Always show employee-level view (no evaluation fields) in View KRAs page
   const userRole = 'Employee' as const;
+
+  useEffect(() => {
+    const loaded = getEmployeePeriods('01073080', '2025-26');
+    setPeriods(loaded);
+    if (loaded.length > 0) setActiveTab(loaded[0].period_id);
+  }, []);
 
   useEffect(() => {
     const savedKras = localStorage.getItem(EMPLOYEE_KRA_STORAGE_KEY);
@@ -201,12 +223,12 @@ const ViewKRAs = () => {
     }, 500);
   };
 
-  const handleAddNewKRA = () => {
-    navigate('/my-pms/kra-entry');
+  const handleAddKRAForPeriod = (period: EmployeePeriod) => {
+    navigate('/my-pms/kra-entry/add', { state: { periodContext: period } });
   };
 
   const handleEditKRA = (kra: KRAItem) => {
-    navigate('/my-pms/kra-entry', {
+    navigate('/my-pms/kra-entry/add', {
       state: { editKRA: kra },
     });
   };
@@ -242,13 +264,6 @@ const ViewKRAs = () => {
           <p className="text-gray-600 mt-1">View, sign, and submit your Key Result Areas and Key Performance Indicators</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button
-            onClick={handleAddNewKRA}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4" />
-            Add New KRA/KPI
-          </button>
           <button
             onClick={handleDownloadPDF}
             className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
@@ -287,262 +302,274 @@ const ViewKRAs = () => {
         </div>
       </div>
 
-      {/* Controls */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          {/* Filter */}
-          <div className="flex items-center gap-2">
-            <Filter className="w-5 h-5 text-gray-400" />
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value as 'all' | 'initial' | 'revised')}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-            >
-              <option value="all">All KRA/KPIs</option>
-              <option value="initial">Initial KRA/KPIs</option>
-              <option value="revised">Revised KRA/KPIs</option>
-            </select>
-          </div>
-
-          {/* View Toggle */}
-          <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode('card')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${
-                viewMode === 'card'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <LayoutGrid className="w-4 h-4" />
-              <span className="text-sm font-medium">Card</span>
-            </button>
-            <button
-              onClick={() => setViewMode('table')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${
-                viewMode === 'table'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <List className="w-4 h-4" />
-              <span className="text-sm font-medium">Table</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Results Count */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-600">
-          Showing <span className="font-semibold">{filteredKRAs.length}</span> KRA/KPI{filteredKRAs.length !== 1 ? 's' : ''}
-        </p>
-      </div>
-
-      {/* Card View */}
-      {viewMode === 'card' && (
-        <div className="space-y-6 divide-y divide-gray-200 max-h-[calc(100vh-400px)] overflow-y-auto">
-          {filteredKRAs.map((kra) => (
-            <div key={kra.id} className="pt-6 first:pt-0">
-              <KRACard 
-                kra={kra} 
-                userRole={userRole} 
-                onView={() => setSelectedKRA(kra)}
-                onEdit={() => handleEditKRA(kra)}
-                onDelete={() => handleDeleteKRA(kra)}
-              />
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Table View */}
-      {viewMode === 'table' && (
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          {/* Desktop Table */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    SL / Code
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    KRA / KPI
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Target
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredKRAs.map((kra) => (
-                  <tr key={kra.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">SL: {kra.sl}</div>
-                      <div className="text-xs text-gray-500">{kra.code}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 line-clamp-2">{kra.kpi}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {kra.type && (
-                        <span className={`px-2 py-1 text-xs font-medium rounded ${
-                          kra.type === 'initial' 
-                            ? 'bg-blue-100 text-blue-700' 
-                            : 'bg-purple-100 text-purple-700'
-                        }`}>
-                          {kra.type === 'initial' ? 'Initial' : 'Revised'}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-600 line-clamp-2 max-w-xs">{kra.targetAnnual}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {kra.status && (
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full inline-flex items-center gap-1 ${
-                          kra.status === 'Approved' 
-                            ? 'bg-green-100 text-green-700'
-                            : kra.status === 'Pending'
-                            ? 'bg-yellow-100 text-yellow-700'
-                            : 'bg-gray-100 text-gray-700'
-                        }`}>
-                          {kra.status === 'Approved' ? (
-                            <>
-                              <CheckCircle className="w-3 h-3" />
-                              Approved
-                            </>
-                          ) : kra.status === 'Pending' ? (
-                            <>
-                              <Clock className="w-3 h-3" />
-                              Pending
-                            </>
-                          ) : (
-                            <>
-                              <Clock className="w-3 h-3" />
-                              Draft
-                            </>
-                          )}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <button 
-                          onClick={() => setSelectedKRA(kra)}
-                          className="text-blue-600 hover:text-blue-700 text-sm font-medium inline-flex items-center gap-1"
-                        >
-                          <Eye className="w-4 h-4" />
-                          View
-                        </button>
-                        <button 
-                          onClick={() => handleEditKRA(kra)}
-                          className="text-amber-600 hover:text-amber-700 text-sm font-medium inline-flex items-center gap-1"
-                        >
-                          <Edit className="w-4 h-4" />
-                          Edit
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteKRA(kra)}
-                          className="text-red-600 hover:text-red-700 text-sm font-medium inline-flex items-center gap-1"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile Cards */}
-          <div className="md:hidden divide-y divide-gray-200">
-            {filteredKRAs.map((kra) => (
-              <div key={kra.id} className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                        SL: {kra.sl}
-                      </span>
-                      <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                        {kra.code}
-                      </span>
-                    </div>
-                    <h3 className="text-sm text-gray-900 line-clamp-2">{kra.kpi}</h3>
-                  </div>
-                  {kra.status && (
-                    <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full flex-shrink-0 ${
-                      kra.status === 'Approved' 
-                        ? 'bg-green-100 text-green-700'
-                        : kra.status === 'Pending'
-                        ? 'bg-yellow-100 text-yellow-700'
-                        : 'bg-gray-100 text-gray-700'
-                    }`}>
-                      {kra.status}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 text-xs text-gray-600 mb-3">
-                  {kra.type && (
-                    <span className={`px-2 py-1 font-medium rounded ${
-                      kra.type === 'initial' 
-                        ? 'bg-blue-100 text-blue-700' 
-                        : 'bg-purple-100 text-purple-700'
-                    }`}>
-                      {kra.type === 'initial' ? 'Initial' : 'Revised'}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-3">
-                  <button 
-                    onClick={() => setSelectedKRA(kra)}
-                    className="text-blue-600 hover:text-blue-700 text-sm font-medium inline-flex items-center gap-1"
-                  >
-                    <Eye className="w-4 h-4" />
-                    View Details
-                  </button>
-                  <button 
-                    onClick={() => handleEditKRA(kra)}
-                    className="text-amber-600 hover:text-amber-700 text-sm font-medium inline-flex items-center gap-1"
-                  >
-                    <Edit className="w-4 h-4" />
-                    Edit
-                  </button>
-                  <button 
-                    onClick={() => handleDeleteKRA(kra)}
-                    className="text-red-600 hover:text-red-700 text-sm font-medium inline-flex items-center gap-1"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Delete
-                  </button>
-                </div>
-              </div>
+      {/* Period Tabs */}
+      {periods.length > 0 && (
+        <div>
+          {/* Tab Bar */}
+          <div className="flex gap-1 border-b border-gray-200 overflow-x-auto">
+            {periods.map((p) => (
+              <button
+                key={p.period_id}
+                onClick={() => setActiveTab(p.period_id)}
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                  activeTab === p.period_id
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                }`}
+              >
+                <Calendar className="w-4 h-4 flex-shrink-0" />
+                {formatPeriodDate(p.period_start_date)} – {formatPeriodDate(p.period_end_date)}
+              </button>
             ))}
           </div>
-        </div>
-      )}
 
-      {/* Empty State */}
-      {filteredKRAs.length === 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Filter className="w-8 h-8 text-gray-400" />
-          </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-1">No KRA/KPIs Found</h3>
-          <p className="text-gray-600">Try adjusting your filter to see more results.</p>
+          {/* Tab Content */}
+          {periods.map((p) => {
+            if (p.period_id !== activeTab) return null;
+            const tabKRAs = filteredKRAs.filter((k) => k.period_id === p.period_id);
+
+            return (
+              <div key={p.period_id} className="space-y-4 pt-4">
+                {/* Period Summary Card */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 flex-1">
+                      <div>
+                        <p className="text-xs text-blue-600 font-medium mb-0.5">Period</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {formatPeriodDate(p.period_start_date)} – {formatPeriodDate(p.period_end_date)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-blue-600 font-medium mb-0.5 flex items-center gap-1">
+                          <Briefcase className="w-3 h-3" /> Position
+                        </p>
+                        <p className="text-sm font-semibold text-gray-900">{p.designation}</p>
+                        <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                          <MapPin className="w-3 h-3" />{p.wing}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-blue-600 font-medium mb-0.5 flex items-center gap-1">
+                          <User className="w-3 h-3" /> RO / RVO
+                        </p>
+                        <p className="text-sm font-semibold text-gray-900 line-clamp-1">{p.ro.name}</p>
+                        <p className="text-xs text-gray-500 line-clamp-1">{p.rvo.name}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-blue-600 font-medium mb-0.5 flex items-center gap-1">
+                          <Users className="w-3 h-3" /> AA
+                        </p>
+                        <p className="text-sm font-semibold text-gray-900 line-clamp-1">{p.aa.name}</p>
+                      </div>
+                    </div>
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full inline-flex items-center gap-1 flex-shrink-0 ${
+                      p.status === 'Approved' ? 'bg-green-100 text-green-700'
+                      : p.status === 'Submitted' ? 'bg-blue-100 text-blue-700'
+                      : p.status === 'Draft' ? 'bg-gray-100 text-gray-700'
+                      : 'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {p.status}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Controls + Add button */}
+                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <Filter className="w-4 h-4 text-gray-400" />
+                        <select
+                          value={filterType}
+                          onChange={(e) => setFilterType(e.target.value as 'all' | 'initial' | 'revised')}
+                          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        >
+                          <option value="all">All KRA/KPIs</option>
+                          <option value="initial">Initial</option>
+                          <option value="revised">Revised</option>
+                        </select>
+                      </div>
+                      <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                        <button
+                          onClick={() => setViewMode('card')}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors ${
+                            viewMode === 'card' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                          }`}
+                        >
+                          <LayoutGrid className="w-4 h-4" />
+                          <span className="text-sm font-medium hidden sm:inline">Card</span>
+                        </button>
+                        <button
+                          onClick={() => setViewMode('table')}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors ${
+                            viewMode === 'table' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                          }`}
+                        >
+                          <List className="w-4 h-4" />
+                          <span className="text-sm font-medium hidden sm:inline">Table</span>
+                        </button>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleAddKRAForPeriod(p)}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add KRA/KPI
+                    </button>
+                  </div>
+                </div>
+
+                {/* Results count */}
+                <p className="text-sm text-gray-600">
+                  Showing <span className="font-semibold">{tabKRAs.length}</span> KRA/KPI{tabKRAs.length !== 1 ? 's' : ''} for this period
+                </p>
+
+                {/* Empty state */}
+                {tabKRAs.length === 0 && (
+                  <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Briefcase className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-1">No KRA/KPIs for this Period</h3>
+                    <p className="text-gray-600 text-sm mb-4">No KRA/KPIs added for this period yet.</p>
+                    <button
+                      onClick={() => handleAddKRAForPeriod(p)}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add KRA/KPI
+                    </button>
+                  </div>
+                )}
+
+                {/* Card View */}
+                {viewMode === 'card' && tabKRAs.length > 0 && (
+                  <div className="space-y-6 divide-y divide-gray-200">
+                    {tabKRAs.map((kra) => (
+                      <div key={kra.id} className="pt-6 first:pt-0">
+                        <KRACard
+                          kra={kra}
+                          userRole={userRole}
+                          onView={() => setSelectedKRA(kra)}
+                          onEdit={() => handleEditKRA(kra)}
+                          onDelete={() => handleDeleteKRA(kra)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Table View */}
+                {viewMode === 'table' && tabKRAs.length > 0 && (
+                  <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                    {/* Desktop Table */}
+                    <div className="hidden md:block overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gray-50 border-b border-gray-200">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SL / Code</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">KRA / KPI</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Target</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {tabKRAs.map((kra) => (
+                            <tr key={kra.id} className="hover:bg-gray-50">
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="text-sm font-medium text-gray-900">SL: {kra.sl}</div>
+                                <div className="text-xs text-gray-500">{kra.code}</div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="text-sm text-gray-900 line-clamp-2">{kra.kpi}</div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                {kra.type && (
+                                  <span className={`px-2 py-1 text-xs font-medium rounded ${
+                                    kra.type === 'initial' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
+                                  }`}>
+                                    {kra.type === 'initial' ? 'Initial' : 'Revised'}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="text-sm text-gray-600 line-clamp-2 max-w-xs">{kra.targetAnnual}</div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                {kra.status && (
+                                  <span className={`px-2 py-1 text-xs font-medium rounded-full inline-flex items-center gap-1 ${
+                                    kra.status === 'Approved' ? 'bg-green-100 text-green-700'
+                                    : kra.status === 'Pending' ? 'bg-yellow-100 text-yellow-700'
+                                    : 'bg-gray-100 text-gray-700'
+                                  }`}>
+                                    {kra.status === 'Approved' ? <><CheckCircle className="w-3 h-3" />Approved</>
+                                    : kra.status === 'Pending' ? <><Clock className="w-3 h-3" />Pending</>
+                                    : <><Clock className="w-3 h-3" />Draft</>}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center gap-2">
+                                  <button onClick={() => setSelectedKRA(kra)} className="text-blue-600 hover:text-blue-700 text-sm font-medium inline-flex items-center gap-1">
+                                    <Eye className="w-4 h-4" />View
+                                  </button>
+                                  <button onClick={() => handleEditKRA(kra)} className="text-amber-600 hover:text-amber-700 text-sm font-medium inline-flex items-center gap-1">
+                                    <Edit className="w-4 h-4" />Edit
+                                  </button>
+                                  <button onClick={() => handleDeleteKRA(kra)} className="text-red-600 hover:text-red-700 text-sm font-medium inline-flex items-center gap-1">
+                                    <Trash2 className="w-4 h-4" />Delete
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Mobile Cards */}
+                    <div className="md:hidden divide-y divide-gray-200">
+                      {tabKRAs.map((kra) => (
+                        <div key={kra.id} className="p-4">
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">SL: {kra.sl}</span>
+                                <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">{kra.code}</span>
+                              </div>
+                              <h3 className="text-sm text-gray-900 line-clamp-2">{kra.kpi}</h3>
+                            </div>
+                            {kra.status && (
+                              <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full flex-shrink-0 ${
+                                kra.status === 'Approved' ? 'bg-green-100 text-green-700'
+                                : kra.status === 'Pending' ? 'bg-yellow-100 text-yellow-700'
+                                : 'bg-gray-100 text-gray-700'
+                              }`}>{kra.status}</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <button onClick={() => setSelectedKRA(kra)} className="text-blue-600 hover:text-blue-700 text-sm font-medium inline-flex items-center gap-1">
+                              <Eye className="w-4 h-4" />View
+                            </button>
+                            <button onClick={() => handleEditKRA(kra)} className="text-amber-600 hover:text-amber-700 text-sm font-medium inline-flex items-center gap-1">
+                              <Edit className="w-4 h-4" />Edit
+                            </button>
+                            <button onClick={() => handleDeleteKRA(kra)} className="text-red-600 hover:text-red-700 text-sm font-medium inline-flex items-center gap-1">
+                              <Trash2 className="w-4 h-4" />Delete
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router";
+import { formatPeriodDate, type EmployeePeriod } from "../../data/employeePeriods";
 import {
   Save,
   Eye,
@@ -48,6 +49,9 @@ interface KRA {
   };
   aa?: string;
   aaValidationNotes?: string;
+  period_id?: string | null;
+  period_start_date?: string | null;
+  period_end_date?: string | null;
 }
 
 const EMPLOYEE_KRA_STORAGE_KEY = "employee_kras";
@@ -55,7 +59,9 @@ const EMPLOYEE_KRA_STORAGE_KEY = "employee_kras";
 const KRAEntry = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const editKRA = (location.state as { editKRA?: KRA } | null)?.editKRA;
+  const locationState = location.state as { editKRA?: KRA; periodContext?: EmployeePeriod } | null;
+  const editKRA = locationState?.editKRA;
+  const periodContext = locationState?.periodContext ?? (editKRA?.period_id ? null : null);
   const [currentStep, setCurrentStep] = useState(1);
   const [showExamples, setShowExamples] = useState(false);
 
@@ -253,6 +259,9 @@ const KRAEntry = () => {
 
     const kraToSave: KRA = {
       ...formData,
+      period_id: periodContext?.period_id ?? editKRA?.period_id ?? null,
+      period_start_date: periodContext?.period_start_date ?? editKRA?.period_start_date ?? null,
+      period_end_date: periodContext?.period_end_date ?? editKRA?.period_end_date ?? null,
       sl:
         formData.sl ||
         String(
@@ -476,6 +485,30 @@ const KRAEntry = () => {
           </div>
 
           <div className="p-6">
+            {/* Period Context Banner */}
+            {periodContext ? (
+              <div className="mb-6 bg-green-50 border border-green-200 rounded-lg px-4 py-3 flex items-start gap-3">
+                <AlertCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-semibold text-green-900">Adding KRA/KPI for this posting period</p>
+                  <p className="text-green-700 mt-0.5">
+                    {formatPeriodDate(periodContext.period_start_date)} to {formatPeriodDate(periodContext.period_end_date)}
+                    {" · "}{periodContext.designation} · {periodContext.wing}
+                  </p>
+                </div>
+              </div>
+            ) : !editKRA ? (
+              <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3 flex items-start gap-3">
+                <AlertCircle className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-semibold text-yellow-900">No service period selected</p>
+                  <p className="text-yellow-700 mt-0.5">
+                    Please go back and select a valid service period before adding KRA/KPI.
+                  </p>
+                </div>
+              </div>
+            ) : null}
+
             {/* Officer Information */}
             <div className="mb-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

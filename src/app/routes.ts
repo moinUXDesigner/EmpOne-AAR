@@ -5,6 +5,7 @@ import OfficerDashboard from "./pages/OfficerDashboard";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import KRAEntry from "./pages/employee/KRAEntry";
+import KRAEntryPage from "./pages/employee/KRAEntryPage";
 import ViewKRAs from "./pages/employee/ViewKRAs";
 import MidYearReview from "./pages/employee/MidYearReview";
 import FinalScore from "./pages/employee/FinalScore";
@@ -42,7 +43,8 @@ export const router = createBrowserRouter(
         { path: "officer-dashboard", Component: OfficerDashboard },
 
         // Employee Routes
-        { path: "my-pms/kra-entry", Component: KRAEntry },
+        { path: "my-pms/kra-entry", Component: KRAEntryPage },
+        { path: "my-pms/kra-entry/add", Component: KRAEntry },
         { path: "my-pms/view-kras", Component: ViewKRAs },
         { path: "my-pms/mid-year-review", Component: MidYearReview },
         { path: "my-pms/final-score", Component: FinalScore },
