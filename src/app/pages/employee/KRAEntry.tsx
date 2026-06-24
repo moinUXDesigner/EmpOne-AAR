@@ -238,6 +238,10 @@ const KRAEntry = () => {
       toast.error("Please enter annual target");
       return;
     }
+    if (!formData.actualAchievement.trim()) {
+      toast.error("Please enter actual achievement");
+      return;
+    }
     if (!formData.sourceRefNo.trim()) {
       toast.error("Please enter source reference");
       return;
@@ -334,13 +338,19 @@ const KRAEntry = () => {
 
   const nextStep = () => {
     // Validation for each step
-    if (currentStep === 2 && !formData.kpi.trim()) {
-      toast.error("Please enter KRA/KPI");
-      return;
-    }
-    if (currentStep === 3) {
+    if (currentStep === 2) {
+      if (!formData.kpi.trim()) {
+        toast.error("Please enter KRA/KPI");
+        return;
+      }
       if (!formData.targetAnnual.trim()) {
         toast.error("Please enter annual target");
+        return;
+      }
+    }
+    if (currentStep === 3) {
+      if (!formData.actualAchievement.trim()) {
+        toast.error("Please enter actual achievement");
         return;
       }
       if (!formData.sourceRefNo.trim()) {
@@ -459,28 +469,9 @@ const KRAEntry = () => {
               </div>
 
               {/* Period of Report */}
-              <div className="flex items-center gap-4 bg-white border border-blue-200 rounded-lg px-4 py-3 flex-shrink-0">
-                <div className="text-center">
-                  <label className="block text-xs font-medium text-blue-600 mb-1">
-                    Start Date
-                  </label>
-                  <p className="text-lg font-bold text-blue-900">
-                    01.04.2025
-                  </p>
-                </div>
-                <div className="w-8 h-0.5 bg-blue-300"></div>
-                <div className="text-center">
-                  <label className="block text-xs font-medium text-blue-600 mb-1">
-                    End Date
-                  </label>
-                  <p className="text-lg font-bold text-blue-900">
-                    31.03.2026
-                  </p>
-                </div>
-                <div className="ml-2 px-3 py-1 bg-blue-600 text-white text-xs font-semibold rounded-full whitespace-nowrap">
-                  FY 2025-26
-                </div>
-              </div>
+              <span className="flex-shrink-0 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-full whitespace-nowrap">
+                FY 2025-26 &nbsp;·&nbsp; 01-04-2025 – 31-03-2026
+              </span>
             </div>
           </div>
 
@@ -657,7 +648,7 @@ const KRAEntry = () => {
                   Step 2: KRA/KPI Title
                 </h2>
                 <p className="text-sm text-gray-600 mt-1">
-                  Enter the KRA/KPI and specify its duration
+                  Enter the KRA/KPI, annual target, and duration
                 </p>
               </div>
               <button
@@ -675,26 +666,6 @@ const KRAEntry = () => {
 
           <div className="p-6">
             <div className="grid grid-cols-1 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  KRA/KPI{" "}
-                  <span className="text-red-600">*</span>
-                </label>
-                <textarea
-                  value={formData.kpi}
-                  onChange={(e) =>
-                    updateFormData("kpi", e.target.value)
-                  }
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter your Key Result Area or Key Performance Indicator"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Be specific and measurable in defining your
-                  KRA/KPI
-                </p>
-              </div>
-
               {/* KPI Date Range */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -705,10 +676,7 @@ const KRAEntry = () => {
                     type="date"
                     value={formData.startDate}
                     onChange={(e) =>
-                      updateFormData(
-                        "startDate",
-                        e.target.value,
-                      )
+                      updateFormData("startDate", e.target.value)
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
@@ -726,6 +694,45 @@ const KRAEntry = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  KRA/KPI Title{" "}
+                  <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.kpi}
+                  onChange={(e) =>
+                    updateFormData("kpi", e.target.value)
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter your Key Result Area or Key Performance Indicator"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Be specific and measurable in defining your
+                  KRA/KPI
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Target (Annual){" "}
+                  <span className="text-red-600">*</span>
+                </label>
+                <textarea
+                  value={formData.targetAnnual}
+                  onChange={(e) =>
+                    updateFormData("targetAnnual", e.target.value)
+                  }
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter the annual target for this KPI"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Clearly state what you aim to achieve by the end of the year
+                </p>
               </div>
             </div>
           </div>
@@ -771,30 +778,8 @@ const KRAEntry = () => {
             <div className="grid grid-cols-1 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Target (Annual){" "}
+                  Actual Achievement{" "}
                   <span className="text-red-600">*</span>
-                </label>
-                <textarea
-                  value={formData.targetAnnual}
-                  onChange={(e) =>
-                    updateFormData(
-                      "targetAnnual",
-                      e.target.value,
-                    )
-                  }
-                  rows={1}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter the annual target for this KPI"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Clearly state what you aim to achieve by the
-                  end of the year
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Actual Achievement
                 </label>
                 <textarea
                   value={formData.actualAchievement}
@@ -809,8 +794,7 @@ const KRAEntry = () => {
                   placeholder="This will be updated during the year as you achieve milestones"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Optional: Can be filled later during mid-year
-                  or final review
+                  Describe what was actually achieved against this KPI
                 </p>
               </div>
 
@@ -1005,8 +989,8 @@ const KRAEntry = () => {
 
       {/* Step 5: Review & Save */}
       {currentStep === 5 && (
-        <div className="bg-white rounded-lg border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
+        <div className="bg-white rounded-lg border border-gray-200 flex flex-col max-h-[calc(100vh-213px)]">
+          <div className="p-6 border-b border-gray-200 flex-shrink-0">
             <div>
               <h2 className="font-semibold text-gray-900">
                 Step 5: Review & Save
@@ -1017,8 +1001,8 @@ const KRAEntry = () => {
             </div>
           </div>
 
-          <div className="p-6">
-            <div className="space-y-6 overflow-y-auto max-h-[calc(100vh-22rem)] pb-6 pr-1">
+          <div className="flex-1 min-h-0 overflow-hidden p-6">
+            <div className="space-y-6 overflow-y-auto h-full pb-6 pr-1">
               {/* KRA/KPI Details */}
               <div className="border border-gray-200 rounded-lg p-4">
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">

@@ -575,38 +575,107 @@ const ViewKRAs = () => {
 
       {/* KRA Details Modal */}
       {selectedKRA && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/20 backdrop-blur-md flex items-center justify-center z-50 p-4"
           onClick={() => setSelectedKRA(null)}
         >
-          <div 
-            className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+          <div
+            className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white z-10">
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-gray-200 flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">KRA/KPI Details</h2>
-                <p className="text-sm text-gray-600 mt-1">{selectedKRA.code} • SL: {selectedKRA.sl}</p>
+                <h2 className="text-lg font-semibold text-gray-900 leading-snug">{selectedKRA.kpi}</h2>
+                <div className="flex flex-wrap items-center gap-2 mt-2">
+                  <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded">SL: {selectedKRA.sl}</span>
+                  <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{selectedKRA.code}</span>
+                  {selectedKRA.type && (
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+                      selectedKRA.type === 'initial' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
+                    }`}>
+                      {selectedKRA.type === 'initial' ? 'Initial' : 'Revised'}
+                    </span>
+                  )}
+                  {selectedKRA.status && (
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full inline-flex items-center gap-1 ${
+                      selectedKRA.status === 'Approved' ? 'bg-green-100 text-green-700'
+                      : selectedKRA.status === 'Pending' ? 'bg-yellow-100 text-yellow-700'
+                      : 'bg-gray-100 text-gray-700'
+                    }`}>
+                      {selectedKRA.status === 'Approved' ? <CheckCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                      {selectedKRA.status}
+                    </span>
+                  )}
+                </div>
               </div>
-              <button
-                onClick={() => setSelectedKRA(null)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
+              <button onClick={() => setSelectedKRA(null)} className="p-2 hover:bg-gray-100 rounded-lg flex-shrink-0">
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
 
-            <div className="p-6">
-              <KRACard kra={selectedKRA} userRole={userRole} />
+            {/* Body */}
+            <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5 space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="md:col-span-2">
+                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Target (Annual)</p>
+                  <p className="text-sm text-gray-900">{selectedKRA.targetAnnual || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Actual Achievement</p>
+                  <p className="text-sm text-gray-900">{selectedKRA.actualAchievement || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Source Ref. No.</p>
+                  <p className="text-sm text-gray-900">{selectedKRA.sourceRefNo || '—'}</p>
+                </div>
+                {selectedKRA.employeeNotes && (
+                  <div className="md:col-span-2">
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">Employee Notes</p>
+                    <p className="text-sm text-gray-900">{selectedKRA.employeeNotes}</p>
+                  </div>
+                )}
+              </div>
+
+              {selectedKRA.uploadedFiles && selectedKRA.uploadedFiles.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Attached Files</p>
+                  <ul className="space-y-1">
+                    {selectedKRA.uploadedFiles.map((file, i) => (
+                      <li key={i} className="flex items-center gap-2 text-sm text-blue-600">
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />
+                        {file.name}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
-            <div className="p-6 border-t border-gray-200 bg-gray-50 flex justify-end gap-2 sticky bottom-0">
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-xl flex items-center justify-between gap-2">
               <button
                 onClick={() => setSelectedKRA(null)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100"
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-white text-sm"
               >
                 Close
               </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => { handleDeleteKRA(selectedKRA); setSelectedKRA(null); }}
+                  className="flex items-center gap-1.5 px-4 py-2 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 text-sm"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete
+                </button>
+                <button
+                  onClick={() => handleEditKRA(selectedKRA)}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                >
+                  <Edit className="w-4 h-4" />
+                  Edit
+                </button>
+              </div>
             </div>
           </div>
         </div>
